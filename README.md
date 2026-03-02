@@ -1,8 +1,8 @@
-# Desloppify - an agent harness to make your codebase 🤌
+# Structorium - an agent harness to make your codebase 🤌
 
-[![PyPI version](https://img.shields.io/pypi/v/desloppify)](https://pypi.org/project/desloppify/) ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+[![PyPI version](https://img.shields.io/pypi/v/structorium)](https://pypi.org/project/structorium/) ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 
-Desloppify gives your AI coding agent the tools to identify, understand, and systematically improve codebase quality. It combines mechanical detection (dead code, duplication, complexity) with subjective LLM review (naming, abstractions, module boundaries), then works through a prioritized fix loop. State persists across scans so it chips away over multiple sessions, and the scoring is designed to resist gaming.
+Structorium gives your AI coding agent the tools to identify, understand, and systematically improve codebase quality. It combines mechanical detection (dead code, duplication, complexity) with subjective LLM review (naming, abstractions, module boundaries), then works through a prioritized fix loop. State persists across scans so it chips away over multiple sessions, and the scoring is designed to resist gaming.
 
 <img src="assets/explained.png" width="100%">
 
@@ -19,17 +19,17 @@ Currently supports 28 languages — full plugin depth for TypeScript, Python, C#
 Paste this prompt into your agent:
 
 ```
-I want you to improve the quality of this codebase. To do this, install and run desloppify.
+I want you to improve the quality of this codebase. To do this, install and run structorium.
 Run ALL of the following (requires Python 3.11+):
 
-pip install --upgrade "desloppify[full]"
-desloppify update-skill claude    # IMPORTANT — installs the workflow guide. Pick yours: claude, cursor, codex, copilot, windsurf, gemini
-desloppify scan --path .
-desloppify next
+pip install --upgrade "structorium[full]"
+structorium update-skill claude    # IMPORTANT — installs the workflow guide. Pick yours: claude, cursor, codex, copilot, windsurf, gemini
+structorium scan --path .
+structorium next
 
 --path is the directory to scan (use "." for the whole project, or "src/" etc).
 
-Your goal is to get the strict score that Desloppify produces as high as possible. Don't be lazy. Fix things properly
+Your goal is to get the strict score that Structorium produces as high as possible. Don't be lazy. Fix things properly
 and fix things deep. Large refactors are fine if that's what it takes but also small fixes are great. The scoring is designed
 to resist gaming, so the only way to improve it is to actually make the code better. Don't cheat.
 
@@ -90,15 +90,15 @@ If you'd like to join a community of vibe engineers who want to build beautiful 
 - Score/feedback consistency is enforced:
   - scores below `100.0` require explicit same-dimension feedback (finding suggestion or `dimension_notes` evidence)
   - scores below `85.0` require at least one same-dimension finding
-- `desloppify review --import` is fail-closed: if any finding is invalid/skipped, the import aborts and state is not saved.
+- `structorium review --import` is fail-closed: if any finding is invalid/skipped, the import aborts and state is not saved.
 - Use `--allow-partial` only when you explicitly want to accept skipped findings.
 
 #### Review Batch Runtime Logs
 
 - `review --run-batches` always writes a live run log while executing.
 - Add `--retrospective` to include historical issue status/notes in the review packet so reviewers can distinguish root causes from symptom-level repeats.
-- Default path: `.desloppify/subagents/runs/<run-stamp>/run.log`
-- Per-batch live logs stream to `.desloppify/subagents/runs/<run-stamp>/logs/batch-<n>.log` while each batch is running.
+- Default path: `.structorium/subagents/runs/<run-stamp>/run.log`
+- Per-batch live logs stream to `.structorium/subagents/runs/<run-stamp>/logs/batch-<n>.log` while each batch is running.
 - Override path with `--run-log-file <path>`.
 - Launch output now includes a runtime upper-bound estimate and prints the active log path so agents can monitor long runs without being blind.
 
@@ -125,26 +125,26 @@ Score is weighted (T4 = 4x T1). Strict score penalizes both open and wontfix.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DESLOPPIFY_ROOT` | cwd | Project root |
-| `DESLOPPIFY_SRC` | `src` | Source directory (TS alias resolution) |
+| `STRUCTORIUM_ROOT` | cwd | Project root |
+| `STRUCTORIUM_SRC` | `src` | Source directory (TS alias resolution) |
 | `--lang <name>` | auto-detected | Language selection (each has own state) |
 | `--exclude <pattern>` | none | Path patterns to skip (repeatable: `--exclude migrations --exclude tests`) |
 | `--no-badge` | false | Skip scorecard image generation |
 | `--badge-path <path>` | `scorecard.png` | Output path for scorecard image |
-| `DESLOPPIFY_NO_BADGE` | — | Set to `true` to disable badge via env |
-| `DESLOPPIFY_BADGE_PATH` | `scorecard.png` | Badge output path via env |
+| `STRUCTORIUM_NO_BADGE` | — | Set to `true` to disable badge via env |
+| `STRUCTORIUM_BADGE_PATH` | `scorecard.png` | Badge output path via env |
 
-Project config values (stored in `.desloppify/config.json`) are managed via:
-- `desloppify config show`
-- `desloppify config set target_strict_score 95` (default: `95`, valid range: `0-100`)
-- `desloppify config set badge_path scorecard.png` (or nested path like `assets/health.png`)
+Project config values (stored in `.structorium/config.json`) are managed via:
+- `structorium config show`
+- `structorium config set target_strict_score 95` (default: `95`, valid range: `0-100`)
+- `structorium config set badge_path scorecard.png` (or nested path like `assets/health.png`)
 
 #### Adding or augmenting a language
 
-Use the scaffold workflow documented in `desloppify/languages/README.md`:
+Use the scaffold workflow documented in `structorium/languages/README.md`:
 
 ```bash
-desloppify dev scaffold-lang <name> --extension .ext --marker <root-marker>
+structorium dev scaffold-lang <name> --extension .ext --marker <root-marker>
 ```
 
 Detect command keys are standardized to snake_case. CLI compatibility aliases
@@ -172,11 +172,11 @@ Import direction: `languages/` → `engine/detectors/`. Never the reverse.
 
 Command entry modules are intentionally thin orchestrators:
 
-- `desloppify/app/commands/review/cmd.py` delegates to
-  `desloppify/app/commands/review/prepare.py`, `desloppify/app/commands/review/batches.py`, `desloppify/app/commands/review/import_cmd.py`, and `desloppify/app/commands/review/runtime.py`
-- `desloppify/app/commands/scan/scan_reporting_dimensions.py` delegates to
-  `desloppify/app/commands/scan/scan_reporting_presentation.py` and `desloppify/app/commands/scan/scan_reporting_subjective.py`
-- `desloppify/app/cli_support/parser.py` delegates subcommand construction to `desloppify/app/cli_support/parser_groups.py`
+- `structorium/app/commands/review/cmd.py` delegates to
+  `structorium/app/commands/review/prepare.py`, `structorium/app/commands/review/batches.py`, `structorium/app/commands/review/import_cmd.py`, and `structorium/app/commands/review/runtime.py`
+- `structorium/app/commands/scan/scan_reporting_dimensions.py` delegates to
+  `structorium/app/commands/scan/scan_reporting_presentation.py` and `structorium/app/commands/scan/scan_reporting_subjective.py`
+- `structorium/app/cli_support/parser.py` delegates subcommand construction to `structorium/app/cli_support/parser_groups.py`
 
 Public CLI behavior should be preserved when refactoring these orchestrators.
 
@@ -184,22 +184,22 @@ Public CLI behavior should be preserved when refactoring these orchestrators.
 
 Dynamic/optional loading is allowed only in explicit extension points:
 
-- `desloppify/languages/__init__.py` for plugin discovery and registration
-- `desloppify/hook_registry.py` for detector-safe optional hooks
+- `structorium/languages/__init__.py` for plugin discovery and registration
+- `structorium/hook_registry.py` for detector-safe optional hooks
 
 Outside these zones, use static imports.
 
 #### State Ownership
 
-- `desloppify/state.py` and `desloppify/engine/_state/` own persisted schema and merge rules
-- `desloppify/languages/_framework/runtime.py` (`LangRun`) owns per-run mutable execution state
+- `structorium/state.py` and `structorium/engine/_state/` own persisted schema and merge rules
+- `structorium/languages/_framework/runtime.py` (`LangRun`) owns per-run mutable execution state
 - command modules may read/write state through state APIs, but should not define ad-hoc persisted fields
 
 #### Optional Dependencies (Coverage)
 
-- `pip install "desloppify[python-security]"` installs `bandit` for Python-specific security checks.
-- `pip install "desloppify[treesitter]"` installs tree-sitter language-pack for deeper AST analysis in generic plugins.
-- `pip install "desloppify[full]"` installs both.
+- `pip install "structorium[python-security]"` installs `bandit` for Python-specific security checks.
+- `pip install "structorium[treesitter]"` installs tree-sitter language-pack for deeper AST analysis in generic plugins.
+- `pip install "structorium[full]"` installs both.
 
 If optional tools are missing, scan warns at start and end, and marks score confidence as reduced for affected detectors.
 

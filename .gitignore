@@ -1,0 +1,63 @@
+# macOS / OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test / type / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+
+# Coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Build / packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.log
+*.tmp
+*.temp
+*.pid
+
+# Local smoke-test env
+.pkg-smoke/
+
+# Structorium runtime/state output
+.structorium/
+scorecard.png
+tmp/
+
+# Node/npm artifacts (for npx-based tooling)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / IDE files
+.vscode/
+.idea/
+*.iml
+
+# Secrets / local env
+.env
+.env.local
+.env.*
+!.env.example

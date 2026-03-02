@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  neo4j:
+    image: neo4j:5.26
+    container_name: structorium-neo4j
+    restart: unless-stopped
+    ports:
+      - "7474:7474"
+      - "17687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/brekfuz123
+      - NEO4J_server_memory_heap_initial__size=1G
+      - NEO4J_server_memory_heap_max__size=1G
+      - NEO4J_server_memory_pagecache_size=1G
+      - NEO4J_server_default__listen__address=0.0.0.0
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
