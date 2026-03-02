@@ -1,0 +1,50 @@
+name: Publish
+
+on:
+  release:
+    types:
+      - published
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate tag matches package version
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import tomllib
+          from pathlib import Path
+          ref = os.environ.get('GITHUB_REF', '')
+          if ref.startswith('refs/tags/'):
+              tag = ref.rsplit('/', 1)[-1]
+              version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
+              if tag != f'v{version}':
+                  raise SystemExit(f'tag {tag} does not match package version v{version}')
+          PY
+
+      - name: Check if version exists on PyPI
+        run: |
+          python - <<'PY'
+          import tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
+          print(f'checked PyPI for structorium=={version} (gate placeholder)')
+          PY
+
+      - name: Run packaging smoke gate
+        run: make package-smoke
+
+      - name: Publish to PyPI
+        run: |
+          echo "Publishing to PyPI (placeholder in local test repo)"

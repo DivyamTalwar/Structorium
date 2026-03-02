@@ -1,0 +1,110 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "structorium"
+version = "0.8.0"
+description = "Architecture. Automatically Enforced"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    {name = "Peter O'Malley", email = "pom@banodoco.ai"},
+]
+keywords = ["code-quality", "technical-debt", "linter", "static-analysis", "refactoring"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/peteromallet/structorium"
+Repository = "https://github.com/peteromallet/structorium"
+Issues = "https://github.com/peteromallet/structorium/issues"
+
+[project.optional-dependencies]
+treesitter = ["tree-sitter-language-pack>=0.3"]
+python-security = ["bandit>=1.7.8"]
+scorecard = ["Pillow>=9.0.0"]
+ai = [
+  "neo4j>=5.20.0",
+  "turbopuffer>=0.6.0",
+]
+full = [
+  "tree-sitter-language-pack>=0.3",
+  "bandit>=1.7.8",
+  "Pillow>=9.0.0",
+  "neo4j>=5.20.0",
+  "turbopuffer>=0.6.0",
+]
+
+[project.scripts]
+structorium = "structorium.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["structorium*"]
+exclude = ["structorium.tests", "structorium.tests.*"]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.package-data]
+"structorium.languages._framework" = ["review_data/*.json"]
+"structorium.languages.python" = ["review_data/*.json"]
+"structorium.languages.typescript" = ["review_data/*.json"]
+"structorium.languages.csharp" = ["review_data/*.json"]
+"structorium.languages.dart" = ["review_data/*.json"]
+"structorium.languages.gdscript" = ["review_data/*.json"]
+"structorium.languages.go" = ["review_data/*.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ['structorium/tests', 'structorium/languages/python/tests', 'structorium/languages/typescript/tests', 'structorium/languages/csharp/tests', 'structorium/languages/dart/tests', 'structorium/languages/gdscript/tests', 'structorium/languages/go/tests']
+norecursedirs = ["structorium/tests/fixtures"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unreachable = true
+show_error_codes = true
+strict_optional = true
+ignore_missing_imports = true
+follow_imports = "skip"
+pretty = true
+files = [
+  "structorium/app/commands/review/entrypoint.py",
+  "structorium/app/commands/review/prepare.py",
+  "structorium/app/commands/review/batches.py",
+  "structorium/app/commands/review/batch_core.py",
+  "structorium/app/commands/review/import_cmd.py",
+  "structorium/app/commands/review/runtime.py",
+  "structorium/app/commands/scan/scan_reporting_dimensions.py",
+  "structorium/app/commands/scan/scan_reporting_llm.py",
+  "structorium/app/commands/scan/scan_reporting_presentation.py",
+  "structorium/app/commands/scan/scan_reporting_subjective.py",
+  "structorium/app/commands/scan/scan_workflow.py",
+  "structorium/app/cli_support/parser.py",
+  "structorium/app/cli_support/parser_groups.py",
+  "structorium/engine/concerns.py",
+  "structorium/languages/_framework/generic.py",
+]
