@@ -1,0 +1,366 @@
+"""Core language-framework dataclasses and contracts."""
+
+from __future__ import annotations
+
+import copy
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
+
+from structorium.core._internal.text_utils import is_numeric
+from structorium.engine.detectors.base import FunctionInfo
+
+if TYPE_CHECKING:
+    from structorium.engine.policy.zones import FileZoneMap, ZoneRule
+    from structorium.languages._framework.runtime import LangRun
+
+# ---------------------------------------------------------------------------
+# Type aliases for complex Callable signatures used in LangConfig fields
+# ---------------------------------------------------------------------------
+DepGraphBuilder = Callable[[Path], dict[str, dict[str, Any]]]
+FunctionExtractor = Callable[[Path], list[FunctionInfo]]
+FileFinder = Callable[[Path], list[str]]
+
+
+@dataclass
+class DetectorPhase:
+    """A single phase in the scan pipeline.
+
+    Each phase runs one or more detectors and returns normalized findings.
+    The `run` function handles both detection AND normalization (converting
+    raw detector output to findings with tiers/confidence).
+    """
+
+    label: str
+    run: Callable[[Path, LangRun], tuple[list[dict[str, Any]], dict[str, int]]]
+    slow: bool = False
+
+
+@dataclass
+class FixResult:
+    """Return type for fixer wrappers that need to carry metadata."""
+
+    entries: list[dict]
+    skip_reasons: dict[str, int] = field(default_factory=dict)
+
+
+CoverageStatus = Literal["full", "reduced"]
+
+
+class DetectorCoverageRecord(TypedDict, total=False):
+    """Persisted detector-level coverage confidence metadata."""
+
+    detector: str
+    status: CoverageStatus
+    confidence: float
+    summary: str
+    impact: str
+    remediation: str
+    tool: str
+    reason: str
+
+
+class ScanCoverageRecord(TypedDict, total=False):
+    """Persisted scan-level coverage snapshot for one language run."""
+
+    status: CoverageStatus
+    confidence: float
+    detectors: dict[str, DetectorCoverageRecord]
+    warnings: list[DetectorCoverageRecord]
+    updated_at: str
+
+
+@dataclass(frozen=True)
+class DetectorCoverageStatus:
+    """Coverage-confidence metadata for a detector in the current scan."""
+
+    detector: str
+    status: CoverageStatus
+    confidence: float = 1.0
+    summary: str = ""
+    impact: str = ""
+    remediation: str = ""
+    tool: str = ""
+    reason: str = ""
+
+
+@dataclass(frozen=True)
+class LangSecurityResult:
+    """Normalized return shape for language-specific security hooks."""
+
+    entries: list[dict]
+    files_scanned: int
+    coverage: DetectorCoverageStatus | None = None
+
+
+@dataclass
+class FixerConfig:
+    """Configuration for an auto-fixer."""
+
+    label: str
+    detect: Callable[[Path], list[dict]]
+    fix: Callable[..., FixResult | list[dict]]
+    detector: str  # finding detector name (for state resolution)
+    verb: str = "Fixed"
+    dry_verb: str = "Would fix"
+    # Signature: (path, state, prev_score, dry_run, *, lang=None) -> None
+    post_fix: Callable[..., None] | None = None
+
+
+@dataclass
+class BoundaryRule:
+    """A coupling boundary: `protected` dir should not be imported from `forbidden_from`."""
+
+    protected: str  # e.g. "shared/"
+    forbidden_from: str  # e.g. "tools/"
+    label: str  # e.g. "shared→tools"
+
+
+@dataclass(frozen=True)
+class LangValueSpec:
+    """Typed language option/setting schema entry."""
+
+    type: type
+    default: object
+    description: str = ""
+
+
+@dataclass
+class LangConfig:
+    """Language configuration — everything the pipeline needs to scan a codebase."""
+
+    name: str
+    extensions: list[str]
+    exclusions: list[str]
+    default_src: str  # relative to PROJECT_ROOT
+
+    # Dep graph builder (language-specific import parsing)
+    build_dep_graph: DepGraphBuilder
+
+    # Entry points (not orphaned even with 0 importers)
+    entry_patterns: list[str]
+    barrel_names: set[str]
+
+    # Detector phases (ordered)
+    phases: list[DetectorPhase] = field(default_factory=list)
+
+    # Fixer registry
+    fixers: dict[str, FixerConfig] = field(default_factory=dict)
+
+    # Area classification (project-specific grouping)
+    get_area: Callable[[str], str] | None = None
+
+    # Commands for `detect` subcommand (language-specific overrides)
+    # Keys serve as the valid detector name list.
+    detect_commands: dict[str, Callable[..., Any]] = field(default_factory=dict)
+
+    # Function extractor (for duplicate detection). Returns a list of FunctionInfo items.
+    extract_functions: FunctionExtractor | None = None
+
+    # Coupling boundaries (optional, project-specific)
+    boundaries: list[BoundaryRule] = field(default_factory=list)
+
+    # Unused detection tool command (for post-fix checklist)
+    typecheck_cmd: str = ""
+
+    # File finder: (path) -> list[str]
+    file_finder: FileFinder | None = None
+
+    # Structural analysis thresholds
+    large_threshold: int = 500
+    complexity_threshold: int = 15
+    props_threshold: int = 14
+    default_scan_profile: str = "full"
+
+    # Language-specific persisted settings and per-run runtime options.
+    setting_specs: dict[str, LangValueSpec] = field(default_factory=dict)
+    runtime_option_specs: dict[str, LangValueSpec] = field(default_factory=dict)
+
+    # Project-level files that indicate this language is present
+    detect_markers: list[str] = field(default_factory=list)
+
+    # External test discovery (outside scanned path)
+    external_test_dirs: list[str] = field(default_factory=lambda: ["tests", "test"])
+    test_file_extensions: list[str] = field(default_factory=list)
+
+    # Review-context language hooks
+    review_module_patterns_fn: Callable[[str], list[str]] | None = None
+    review_api_surface_fn: Callable[[dict[str, str]], dict] | None = None
+    review_guidance: dict = field(default_factory=dict)
+    review_low_value_pattern: object | None = None
+    holistic_review_dimensions: list[str] = field(default_factory=list)
+    migration_pattern_pairs: list[tuple[str, object, object]] = field(
+        default_factory=list
+    )
+    migration_mixed_extensions: set[str] = field(default_factory=set)
+
+    # Zone classification rules
+    zone_rules: list[ZoneRule] = field(default_factory=list)
+
+    # Integration depth: "full" | "standard" | "shallow" | "minimal"
+    integration_depth: str = "full"
+
+    _default_runtime_settings: dict[str, object] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    _default_runtime_options: dict[str, object] = field(
+        default_factory=dict, init=False, repr=False
+    )
+
+    @staticmethod
+    def _clone_default(default: object) -> object:
+        return copy.deepcopy(default)
+
+    @classmethod
+    def _coerce_value(cls, raw: object, expected: type, default: object) -> object:
+        """Best-effort coercion for config/CLI values."""
+        fallback = cls._clone_default(default)
+        if raw is None:
+            return fallback
+
+        if expected is bool:
+            if isinstance(raw, bool):
+                return raw
+            if isinstance(raw, str):
+                lowered = raw.strip().lower()
+                if lowered in {"1", "true", "yes", "on"}:
+                    return True
+                if lowered in {"0", "false", "no", "off"}:
+                    return False
+                return fallback
+            if is_numeric(raw):
+                return bool(raw)
+            return fallback
+
+        if expected is int:
+            if isinstance(raw, bool):
+                return fallback
+            if is_numeric(raw):
+                return int(raw)
+            try:
+                return int(raw)
+            except (TypeError, ValueError):
+                return fallback
+
+        if expected is float:
+            if isinstance(raw, bool):
+                return fallback
+            if is_numeric(raw):
+                return float(raw)
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                return fallback
+
+        if expected is str:
+            return raw if isinstance(raw, str) else str(raw)
+
+        if expected is list:
+            return raw if isinstance(raw, list) else fallback
+
+        if expected is dict:
+            return raw if isinstance(raw, dict) else fallback
+
+        return raw if isinstance(raw, expected) else fallback
+
+    def normalize_settings(self, values: dict[str, object] | None) -> dict[str, object]:
+        values = values if isinstance(values, dict) else {}
+        normalized: dict[str, object] = {}
+        for key, spec in self.setting_specs.items():
+            raw = values.get(key, spec.default)
+            normalized[key] = self._coerce_value(raw, spec.type, spec.default)
+        return normalized
+
+    def normalize_runtime_options(
+        self,
+        values: dict[str, object] | None,
+        *,
+        strict: bool = False,
+    ) -> dict[str, object]:
+        values = values if isinstance(values, dict) else {}
+        specs = self.runtime_option_specs
+        if strict:
+            unknown = sorted(set(values) - set(specs))
+            if unknown:
+                raise KeyError(
+                    f"Unknown runtime option(s) for {self.name}: {', '.join(unknown)}"
+                )
+        normalized: dict[str, object] = {}
+        for key, spec in specs.items():
+            raw = values.get(key, spec.default)
+            normalized[key] = self._coerce_value(raw, spec.type, spec.default)
+        return normalized
+
+    def set_runtime_context(
+        self,
+        *,
+        settings: dict[str, object] | None = None,
+        options: dict[str, object] | None = None,
+    ) -> None:
+        """Set default runtime settings/options for future LangRun creation."""
+        if settings is not None:
+            self._default_runtime_settings = self.normalize_settings(settings)
+        if options is not None:
+            self._default_runtime_options = self.normalize_runtime_options(options)
+
+    def runtime_setting(self, key: str, default: Any = None) -> Any:
+        """Read setting from config-level runtime defaults."""
+        if key in self._default_runtime_settings:
+            return copy.deepcopy(self._default_runtime_settings[key])
+        spec = self.setting_specs.get(key)
+        if spec:
+            return copy.deepcopy(spec.default)
+        return default
+
+    def runtime_option(self, key: str, default: Any = None) -> Any:
+        """Read option from config-level runtime defaults."""
+        if key in self._default_runtime_options:
+            return copy.deepcopy(self._default_runtime_options[key])
+        spec = self.runtime_option_specs.get(key)
+        if spec:
+            return copy.deepcopy(spec.default)
+        return default
+
+    def detect_lang_security(
+        self, files: list[str], zone_map: FileZoneMap | None
+    ) -> tuple[list[dict], int]:
+        """Language-specific security checks. Override in subclasses."""
+        return [], 0
+
+    def detect_lang_security_detailed(
+        self,
+        files: list[str],
+        zone_map: FileZoneMap | None,
+    ) -> LangSecurityResult:
+        """Language-specific security checks with optional coverage metadata."""
+        entries, files_scanned = self.detect_lang_security(files, zone_map)
+        return LangSecurityResult(entries=entries, files_scanned=files_scanned)
+
+    def detect_private_imports(
+        self, graph: dict, zone_map: FileZoneMap | None
+    ) -> tuple[list[dict], int]:
+        """Language-specific private-import detection. Override in subclasses."""
+        return [], 0
+
+    def scan_coverage_prerequisites(self) -> list[DetectorCoverageStatus]:
+        """Optional preflight checks that can reduce scan confidence."""
+        return []
+
+
+__all__ = [
+    "BoundaryRule",
+    "DetectorCoverageRecord",
+    "CoverageStatus",
+    "DetectorCoverageStatus",
+    "DepGraphBuilder",
+    "DetectorPhase",
+    "FileFinder",
+    "FixerConfig",
+    "FixResult",
+    "FunctionExtractor",
+    "LangConfig",
+    "ScanCoverageRecord",
+    "LangSecurityResult",
+    "LangValueSpec",
+]
