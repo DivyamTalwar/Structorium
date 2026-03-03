@@ -141,7 +141,7 @@ Project config values (stored in `.structorium/config.json`) are managed via:
 
 #### Adding or augmenting a language
 
-Use the scaffold workflow documented in `structorium/languages/README.md`:
+Use the scaffold workflow documented in `languages/README.md`:
 
 ```bash
 structorium dev scaffold-lang <name> --extension .ext --marker <root-marker>
@@ -172,11 +172,11 @@ Import direction: `languages/` → `engine/detectors/`. Never the reverse.
 
 Command entry modules are intentionally thin orchestrators:
 
-- `structorium/app/commands/review/cmd.py` delegates to
-  `structorium/app/commands/review/prepare.py`, `structorium/app/commands/review/batches.py`, `structorium/app/commands/review/import_cmd.py`, and `structorium/app/commands/review/runtime.py`
-- `structorium/app/commands/scan/scan_reporting_dimensions.py` delegates to
-  `structorium/app/commands/scan/scan_reporting_presentation.py` and `structorium/app/commands/scan/scan_reporting_subjective.py`
-- `structorium/app/cli_support/parser.py` delegates subcommand construction to `structorium/app/cli_support/parser_groups.py`
+- `app/commands/review/cmd.py` delegates to
+  `app/commands/review/prepare.py`, `app/commands/review/batches.py`, `app/commands/review/import_cmd.py`, and `app/commands/review/runtime.py`
+- `app/commands/scan/scan_reporting_dimensions.py` delegates to
+  `app/commands/scan/scan_reporting_presentation.py` and `app/commands/scan/scan_reporting_subjective.py`
+- `app/cli_support/parser.py` delegates subcommand construction to `app/cli_support/parser_groups.py`
 
 Public CLI behavior should be preserved when refactoring these orchestrators.
 
@@ -184,15 +184,15 @@ Public CLI behavior should be preserved when refactoring these orchestrators.
 
 Dynamic/optional loading is allowed only in explicit extension points:
 
-- `structorium/languages/__init__.py` for plugin discovery and registration
-- `structorium/hook_registry.py` for detector-safe optional hooks
+- `languages/__init__.py` for plugin discovery and registration
+- `hook_registry.py` for detector-safe optional hooks
 
 Outside these zones, use static imports.
 
 #### State Ownership
 
-- `structorium/state.py` and `structorium/engine/_state/` own persisted schema and merge rules
-- `structorium/languages/_framework/runtime.py` (`LangRun`) owns per-run mutable execution state
+- `state.py` and `engine/_state/` own persisted schema and merge rules
+- `languages/_framework/runtime.py` (`LangRun`) owns per-run mutable execution state
 - command modules may read/write state through state APIs, but should not define ad-hoc persisted fields
 
 #### Optional Dependencies (Coverage)
