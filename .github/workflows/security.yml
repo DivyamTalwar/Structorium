@@ -67,6 +67,9 @@ jobs:
         run: pip-audit --strict --progress-spinner off -r .pip-audit-requirements.txt
 
   codeql:
+    if: >
+      github.event.repository.private == false ||
+      vars.ENABLE_PRIVATE_CODEQL == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
