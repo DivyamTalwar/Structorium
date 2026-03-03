@@ -11,12 +11,24 @@ _ALLOWED_COMPAT_MODULES = {
     "utils.py",
     "file_discovery.py",
 }
+_VENV_DIR_NAMES = {
+    ".venv",
+    ".venv-ci",
+    "venv",
+    ".tox",
+    ".nox",
+}
 
 
 def _runtime_python_files() -> list[tuple[Path, str]]:
     files: list[tuple[Path, str]] = []
     for path in _PACKAGE_ROOT.rglob("*.py"):
         rel = path.relative_to(_PROJECT_ROOT).as_posix()
+        rel_parts = set(rel.split("/"))
+        if rel_parts & _VENV_DIR_NAMES:
+            continue
+        if "site-packages" in rel_parts:
+            continue
         if rel.startswith(
             (
                 ".git/",
