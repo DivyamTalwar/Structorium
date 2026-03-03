@@ -2,14 +2,14 @@
 
 import json
 import os
+import shlex
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
-
-from structorium.engine.detectors.graph import detect_cycles
-from structorium.languages.csharp.detectors.deps import (
+from engine.detectors.graph import detect_cycles
+from languages.csharp.detectors.deps import (
     _build_roslyn_command,
     build_dep_graph,
     resolve_roslyn_cmd_from_args,
@@ -17,7 +17,7 @@ from structorium.languages.csharp.detectors.deps import (
 
 
 def _fixture_root(name: str) -> Path:
-    base = Path("structorium") / "tests" / "fixtures" / "csharp"
+    base = Path("tests") / "fixtures" / "csharp"
     return (base / name).resolve()
 
 
@@ -57,6 +57,19 @@ def _require_roslyn_payload(roslyn_cmd: str, root: Path):
     payload = json.loads(proc.stdout or "{}")
     assert isinstance(payload, dict)
     assert "files" in payload or "edges" in payload
+
+
+def _roslyn_test_cmd() -> str:
+    configured = os.environ.get("STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD", "").strip()
+    if configured:
+        return configured
+
+    adapter = (Path(__file__).resolve().parents[2] / "helpers" / "csharp_roslyn_test_adapter.py").resolve()
+    assert adapter.is_file(), f"Missing Roslyn test adapter: {adapter}"
+    python = shlex.quote(sys.executable)
+    adapter_quoted = shlex.quote(str(adapter))
+    # Keep {path} quoted so paths with spaces are handled correctly by shlex.split.
+    return f'{python} {adapter_quoted} "{{path}}"'
 
 
 def test_resolve_roslyn_cmd_from_args_uses_runtime_options():
@@ -253,7 +266,7 @@ def test_build_dep_graph_uses_roslyn_payload_when_available(tmp_path, monkeypatc
 
     monkeypatch.setenv("STRUCTORIUM_CSHARP_ROSLYN_CMD", "fake-roslyn")
     monkeypatch.setattr(
-        "structorium.languages.csharp.detectors.deps.subprocess.run",
+        "languages.csharp.detectors.deps.subprocess.run",
         lambda *args, **kwargs: _Proc(),
     )
 
@@ -284,7 +297,7 @@ def test_build_dep_graph_roslyn_invokes_subprocess_without_shell(tmp_path, monke
 
     monkeypatch.setenv("STRUCTORIUM_CSHARP_ROSLYN_CMD", "fake-roslyn --json")
     monkeypatch.setattr(
-        "structorium.languages.csharp.detectors.deps.subprocess.run", _fake_run
+        "languages.csharp.detectors.deps.subprocess.run", _fake_run
     )
 
     build_dep_graph(tmp_path)
@@ -319,7 +332,7 @@ def test_build_dep_graph_prefers_explicit_roslyn_cmd_over_env(tmp_path, monkeypa
 
     monkeypatch.setenv("STRUCTORIUM_CSHARP_ROSLYN_CMD", "env-roslyn --json")
     monkeypatch.setattr(
-        "structorium.languages.csharp.detectors.deps.subprocess.run", _fake_run
+        "languages.csharp.detectors.deps.subprocess.run", _fake_run
     )
 
     build_dep_graph(tmp_path, roslyn_cmd="explicit-roslyn --json")
@@ -346,7 +359,7 @@ def test_build_dep_graph_falls_back_when_roslyn_command_fails(tmp_path, monkeypa
 
     monkeypatch.setenv("STRUCTORIUM_CSHARP_ROSLYN_CMD", "fake-roslyn")
     monkeypatch.setattr(
-        "structorium.languages.csharp.detectors.deps.subprocess.run",
+        "languages.csharp.detectors.deps.subprocess.run",
         lambda *args, **kwargs: _ProcFail(),
     )
 
@@ -378,7 +391,7 @@ def test_build_dep_graph_uses_fallback_when_roslyn_payload_too_large(
     monkeypatch.setenv("STRUCTORIUM_CSHARP_ROSLYN_CMD", "fake-roslyn")
     monkeypatch.setenv("STRUCTORIUM_CSHARP_ROSLYN_MAX_OUTPUT_BYTES", "128")
     monkeypatch.setattr(
-        "structorium.languages.csharp.detectors.deps.subprocess.run",
+        "languages.csharp.detectors.deps.subprocess.run",
         lambda *args, **kwargs: _ProcLarge(),
     )
 
@@ -393,11 +406,7 @@ def test_build_dep_graph_uses_fallback_when_roslyn_payload_too_large(
 def test_build_dep_graph_roslyn_integration_when_command_is_configured(
     tmp_path, monkeypatch
 ):
-    roslyn_cmd = os.environ.get("STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD")
-    if not roslyn_cmd:
-        pytest.skip(
-            "Set STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD to run Roslyn integration test"
-        )
+    roslyn_cmd = _roslyn_test_cmd()
 
     (tmp_path / "Program.cs").write_text(
         "\n".join(
@@ -427,9 +436,7 @@ def test_build_dep_graph_roslyn_integration_when_command_is_configured(
 
 
 def test_build_dep_graph_heuristic_matches_roslyn_simple_app(monkeypatch):
-    roslyn_cmd = os.environ.get("STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD")
-    if not roslyn_cmd:
-        pytest.skip("Set STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD to run parity tests")
+    roslyn_cmd = _roslyn_test_cmd()
 
     root = _fixture_root("simple_app")
     _require_roslyn_payload(roslyn_cmd, root)
@@ -444,9 +451,7 @@ def test_build_dep_graph_heuristic_matches_roslyn_simple_app(monkeypatch):
 
 
 def test_build_dep_graph_heuristic_matches_roslyn_multi_project(monkeypatch):
-    roslyn_cmd = os.environ.get("STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD")
-    if not roslyn_cmd:
-        pytest.skip("Set STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD to run parity tests")
+    roslyn_cmd = _roslyn_test_cmd()
 
     root = _fixture_root("multi_project")
     _require_roslyn_payload(roslyn_cmd, root)
