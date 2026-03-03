@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fnmatch
 import importlib.util
 import tomllib
 from pathlib import Path
@@ -14,12 +15,12 @@ try:
 except ImportError:
     setuptools = None  # type: ignore[assignment]
 
-from structorium.core._internal.text_utils import PROJECT_ROOT
-from structorium.engine.policy.zones import FileZoneMap, Zone
-from structorium.core.discovery_api import rel
-from structorium.languages import available_langs, get_lang
-from structorium.languages._framework.structure_validation import validate_lang_structure
-from structorium.core.tooling import compute_tool_hash
+from core._internal.text_utils import PROJECT_ROOT
+from core.discovery_api import rel
+from core.tooling import compute_tool_hash
+from engine.policy.zones import FileZoneMap, Zone
+from languages import available_langs, get_lang
+from languages._framework.structure_validation import validate_lang_structure
 
 
 def _full_langs() -> list[str]:
@@ -32,13 +33,40 @@ def _load_pyproject() -> dict:
 
 
 def _lang_test_rel_path(lang: str) -> str:
-    return f"structorium/languages/{lang}/tests"
+    return f"languages/{lang}/tests"
+
+
+def _find_packages_like_setuptools(
+    project_root: Path, *, include: list[str], exclude: list[str]
+) -> set[str]:
+    """Discover Python packages with setuptools-style include/exclude matching."""
+    if setuptools is not None:
+        return set(
+            setuptools.find_packages(str(project_root), include=include, exclude=exclude)
+        )
+
+    packages: set[str] = set()
+    for init_file in project_root.rglob("__init__.py"):
+        pkg_dir = init_file.parent
+        try:
+            rel_pkg = pkg_dir.relative_to(project_root)
+        except ValueError:
+            continue
+        if not rel_pkg.parts:
+            continue
+        package = ".".join(rel_pkg.parts)
+        if not any(fnmatch.fnmatchcase(package, pattern) for pattern in include):
+            continue
+        if any(fnmatch.fnmatchcase(package, pattern) for pattern in exclude):
+            continue
+        packages.add(package)
+    return packages
 
 
 def test_pyproject_discovers_lang_test_paths():
     data = _load_pyproject()
     testpaths = data["tool"]["pytest"]["ini_options"]["testpaths"]
-    assert "structorium/tests" in testpaths
+    assert "tests" in testpaths
     for lang in _full_langs():
         assert _lang_test_rel_path(lang) in testpaths
 
@@ -48,8 +76,8 @@ def test_pyproject_excludes_tests_from_packages():
     excludes = data["tool"]["setuptools"]["packages"]["find"].get("exclude", [])
     # Only the top-level test suite should be excluded — language plugin
     # tests/ dirs must be included in the wheel for structure_validation.py.
-    assert "structorium.tests" in excludes
-    assert "structorium.tests.*" in excludes
+    assert "tests" in excludes
+    assert "tests.*" in excludes
     # The old wildcard pattern must NOT be present — it excluded language
     # plugin tests/ dirs from the wheel, breaking plugin discovery.
     assert "*.tests" not in excludes
@@ -79,13 +107,12 @@ def test_colocated_lang_tests_are_classified_as_test_zone():
         )
 
 
-@pytest.mark.skipif(setuptools is None, reason="setuptools not installed")
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_packaging_includes_lang_plugin_tests():
     """Regression: pyproject.toml exclude patterns must not drop language plugin tests/.
 
     The original bug used exclude = ["*.tests", "*.tests.*"] which matched
-    structorium.languages.csharp.tests etc. and dropped them from the wheel.
+    languages.csharp.tests etc. and dropped them from the wheel.
     structure_validation.py requires a tests/ dir, so installing from that
     wheel broke plugin discovery at import time.
 
@@ -98,14 +125,14 @@ def test_packaging_includes_lang_plugin_tests():
     includes = find_cfg.get("include", ["*"])
     excludes = find_cfg.get("exclude", [])
 
-    pkgs = set(
-        setuptools.find_packages(str(PROJECT_ROOT), include=includes, exclude=excludes)
+    pkgs = _find_packages_like_setuptools(
+        PROJECT_ROOT, include=includes, exclude=excludes
     )
 
     missing = [
-        f"structorium.languages.{lang}.tests"
+        f"languages.{lang}.tests"
         for lang in _full_langs()
-        if f"structorium.languages.{lang}.tests" not in pkgs
+        if f"languages.{lang}.tests" not in pkgs
     ]
     assert not missing, (
         f"Language plugin tests/ packages excluded from wheel by pyproject.toml "
@@ -113,7 +140,7 @@ def test_packaging_includes_lang_plugin_tests():
         f"These are required by structure_validation.py at install time."
     )
 
-    leaked = [p for p in sorted(pkgs) if p.startswith("structorium.tests")]
+    leaked = [p for p in sorted(pkgs) if p.startswith("tests")]
     assert not leaked, f"Top-level test suite leaked into wheel packages: {leaked}"
 
 
@@ -123,11 +150,11 @@ def test_validate_lang_structure_against_importlib_resolved_path():
     test_each_lang_has_colocated_tests_dir checks PROJECT_ROOT, which always
     passes in source mode even after a bad wheel build. This test uses importlib
     to find where Python has actually resolved each language package — in a wheel
-    install that excluded tests/, that's site-packages/structorium/languages/{lang}/
+    install that excluded tests/, that's site-packages/languages/{lang}/
     which lacks tests/ and triggers the ValueError users saw.
     """
     for lang in _full_langs():
-        lang_pkg = f"structorium.languages.{lang}"
+        lang_pkg = f"languages.{lang}"
         spec = importlib.util.find_spec(lang_pkg)
         assert spec is not None, f"Cannot find installed package {lang_pkg!r}"
         search_locs = list(spec.submodule_search_locations)
@@ -146,7 +173,7 @@ def test_compute_tool_hash_ignores_colocated_tests(tmp_path):
     test_file = test_dir / "test_core.py"
     test_file.write_text("def test_x():\n    assert True\n")
 
-    with patch("structorium.core.tooling.TOOL_DIR", tmp_path):
+    with patch("core.tooling.TOOL_DIR", tmp_path):
         base = compute_tool_hash()
 
         # Test-only changes should not affect runtime tool hash.
