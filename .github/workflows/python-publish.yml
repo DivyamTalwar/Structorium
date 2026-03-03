@@ -8,15 +8,46 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Allow publishing outside release/tag events"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: pypi
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
       - name: Validate tag matches package version
         run: |
@@ -36,15 +67,48 @@ jobs:
       - name: Check if version exists on PyPI
         run: |
           python - <<'PY'
+          import json
+          import urllib.error
+          import urllib.request
           import tomllib
           from pathlib import Path
+          package_name = "structorium"
           version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
-          print(f'checked PyPI for structorium=={version} (gate placeholder)')
+          url = f"https://pypi.org/pypi/{package_name}/json"
+          try:
+              with urllib.request.urlopen(url, timeout=10) as resp:
+                  payload = json.load(resp)
+          except urllib.error.HTTPError as exc:
+              if exc.code == 404:
+                  print(f"{package_name} not found on PyPI yet, allowing publish of v{version}")
+              else:
+                  raise
+          else:
+              releases = payload.get("releases", {})
+              if version in releases:
+                  raise SystemExit(
+                      f"Version {package_name}=={version} already exists on PyPI; "
+                      "bump version before publishing."
+                  )
+              print(f"Version {package_name}=={version} is available for publish.")
           PY
 
       - name: Run packaging smoke gate
         run: make package-smoke
 
+      - name: Build distributions
+        run: python -m build
+
+      - name: Attest artifacts
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*
+
       - name: Publish to PyPI
-        run: |
-          echo "Publishing to PyPI (placeholder in local test repo)"
+        if: >
+          startsWith(github.ref, 'refs/tags/v') ||
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
