@@ -40,10 +40,10 @@ arch: install-ci-tools
 	$(LINT_IMPORTS) --config $(IMPORTLINTER_CONFIG)
 
 ci-contracts: install-ci-tools
-	pytest -q structorium/tests/ci/test_ci_contracts.py
+	pytest -q tests/ci/test_ci_contracts.py
 
 integration-roslyn: install-ci-tools
-	pytest -q structorium/tests/lang/csharp/test_csharp_deps.py -k "roslyn"
+	pytest -q tests/lang/csharp/test_csharp_deps.py -k "roslyn"
 
 tests: install-ci-tools
 	pytest -q $(PYTEST_XML_FLAG)

@@ -50,28 +50,38 @@ full = [
 ]
 
 [project.scripts]
-structorium = "structorium.cli:main"
+structorium = "cli:main"
 
 [tool.setuptools.packages.find]
-include = ["structorium*"]
-exclude = ["structorium.tests", "structorium.tests.*"]
+include = ["app*", "core*", "engine*", "intelligence*", "languages*"]
+exclude = ["tests", "tests.*"]
 
 [tool.setuptools]
 include-package-data = false
+py-modules = [
+  "cli",
+  "file_discovery",
+  "hook_registry",
+  "scoring",
+  "search",
+  "state",
+  "utils",
+  "versioning",
+]
 
 [tool.setuptools.package-data]
-"structorium.languages._framework" = ["review_data/*.json"]
-"structorium.languages.python" = ["review_data/*.json"]
-"structorium.languages.typescript" = ["review_data/*.json"]
-"structorium.languages.csharp" = ["review_data/*.json"]
-"structorium.languages.dart" = ["review_data/*.json"]
-"structorium.languages.gdscript" = ["review_data/*.json"]
-"structorium.languages.go" = ["review_data/*.json"]
+"languages._framework" = ["review_data/*.json"]
+"languages.python" = ["review_data/*.json"]
+"languages.typescript" = ["review_data/*.json"]
+"languages.csharp" = ["review_data/*.json"]
+"languages.dart" = ["review_data/*.json"]
+"languages.gdscript" = ["review_data/*.json"]
+"languages.go" = ["review_data/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ['structorium/tests', 'structorium/languages/python/tests', 'structorium/languages/typescript/tests', 'structorium/languages/csharp/tests', 'structorium/languages/dart/tests', 'structorium/languages/gdscript/tests', 'structorium/languages/go/tests']
-norecursedirs = ["structorium/tests/fixtures"]
+testpaths = ['tests', 'languages/python/tests', 'languages/typescript/tests', 'languages/csharp/tests', 'languages/dart/tests', 'languages/gdscript/tests', 'languages/go/tests']
+norecursedirs = ["tests/fixtures"]
 
 [tool.ruff]
 target-version = "py311"
@@ -92,19 +102,19 @@ ignore_missing_imports = true
 follow_imports = "skip"
 pretty = true
 files = [
-  "structorium/app/commands/review/entrypoint.py",
-  "structorium/app/commands/review/prepare.py",
-  "structorium/app/commands/review/batches.py",
-  "structorium/app/commands/review/batch_core.py",
-  "structorium/app/commands/review/import_cmd.py",
-  "structorium/app/commands/review/runtime.py",
-  "structorium/app/commands/scan/scan_reporting_dimensions.py",
-  "structorium/app/commands/scan/scan_reporting_llm.py",
-  "structorium/app/commands/scan/scan_reporting_presentation.py",
-  "structorium/app/commands/scan/scan_reporting_subjective.py",
-  "structorium/app/commands/scan/scan_workflow.py",
-  "structorium/app/cli_support/parser.py",
-  "structorium/app/cli_support/parser_groups.py",
-  "structorium/engine/concerns.py",
-  "structorium/languages/_framework/generic.py",
+  "app/commands/review/entrypoint.py",
+  "app/commands/review/prepare.py",
+  "app/commands/review/batches.py",
+  "app/commands/review/batch_core.py",
+  "app/commands/review/import_cmd.py",
+  "app/commands/review/runtime.py",
+  "app/commands/scan/scan_reporting_dimensions.py",
+  "app/commands/scan/scan_reporting_llm.py",
+  "app/commands/scan/scan_reporting_presentation.py",
+  "app/commands/scan/scan_reporting_subjective.py",
+  "app/commands/scan/scan_workflow.py",
+  "app/cli_support/parser.py",
+  "app/cli_support/parser_groups.py",
+  "engine/concerns.py",
+  "languages/_framework/generic.py",
 ]
