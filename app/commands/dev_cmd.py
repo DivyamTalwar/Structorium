@@ -8,6 +8,7 @@ import keyword
 import re
 import sys
 
+from app.commands.dev_autofix_pr import cmd_dev_autofix_pr
 from app.commands.dev_scaffold_templates import build_scaffold_files
 from core._internal.text_utils import PROJECT_ROOT
 from core.discovery_api import safe_write_text
@@ -23,8 +24,14 @@ def cmd_dev(args: argparse.Namespace) -> None:
         except ValueError as ex:
             raise SystemExit(colorize(str(ex), "red")) from ex
         return
+    if action == "autofix-pr":
+        cmd_dev_autofix_pr(args)
+        return
     print(
-        colorize("Unknown dev action. Use `structorium dev scaffold-lang`.", "red"),
+        colorize(
+            "Unknown dev action. Use `structorium dev scaffold-lang` or `structorium dev autofix-pr`.",
+            "red",
+        ),
         file=sys.stderr,
     )
     sys.exit(1)

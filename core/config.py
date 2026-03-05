@@ -159,6 +159,36 @@ CONFIG_SCHEMA: dict[str, ConfigKey] = {
         10,
         "Max persisted review-memory entries included in AI context",
     ),
+    "new_code_gate_enabled": ConfigKey(
+        bool,
+        False,
+        "Enable new-code-only architecture gate checks",
+    ),
+    "new_code_gate_policy": ConfigKey(
+        str,
+        "standard",
+        "New-code gate policy profile (strict, standard, ai_generated_code)",
+    ),
+    "new_code_gate_base_ref": ConfigKey(
+        str,
+        "origin/main",
+        "Base git ref used for new-code diff evaluation",
+    ),
+    "new_code_gate_max_new_findings": ConfigKey(
+        int,
+        -1,
+        "Override max new findings for new-code gate (-1 = policy default)",
+    ),
+    "new_code_gate_max_new_high": ConfigKey(
+        int,
+        -1,
+        "Override max new tier<=2 findings for new-code gate (-1 = policy default)",
+    ),
+    "new_code_gate_max_new_critical": ConfigKey(
+        int,
+        -1,
+        "Override max new tier<=1 findings for new-code gate (-1 = policy default)",
+    ),
 }
 
 
