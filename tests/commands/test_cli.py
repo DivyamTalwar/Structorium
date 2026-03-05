@@ -479,6 +479,32 @@ class TestCreateParser:
         )
         assert args.wire_pyproject is False
 
+    def test_dev_autofix_pr(self, parser):
+        args = parser.parse_args(
+            [
+                "dev",
+                "autofix-pr",
+                "--max-fixers",
+                "4",
+                "--risk-threshold",
+                "18.5",
+                "--execute",
+                "--create-branch",
+                "--branch-prefix",
+                "autofix",
+                "--base-ref",
+                "main",
+            ]
+        )
+        assert args.command == "dev"
+        assert args.dev_action == "autofix-pr"
+        assert args.max_fixers == 4
+        assert args.risk_threshold == 18.5
+        assert args.execute is True
+        assert args.create_branch is True
+        assert args.branch_prefix == "autofix"
+        assert args.base_ref == "main"
+
     def test_dev_requires_action(self, parser):
         with pytest.raises(SystemExit):
             parser.parse_args(["dev"])
