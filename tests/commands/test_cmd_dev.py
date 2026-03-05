@@ -104,3 +104,14 @@ def test_scaffold_lang_wires_pyproject_once(tmp_path, monkeypatch):
     second = pyproject.read_text()
     assert second.count("languages.ruby.tests*") == 0
     assert second.count("languages/ruby/tests") == 1
+
+
+def test_cmd_dev_dispatches_autofix_pr(monkeypatch):
+    called = {"value": False}
+
+    def _fake_autofix(_args):
+        called["value"] = True
+
+    monkeypatch.setattr(dev_mod, "cmd_dev_autofix_pr", _fake_autofix)
+    dev_mod.cmd_dev(SimpleNamespace(dev_action="autofix-pr"))
+    assert called["value"] is True

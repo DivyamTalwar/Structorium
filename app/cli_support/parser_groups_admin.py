@@ -716,6 +716,57 @@ def _add_dev_parser(sub) -> None:
     )
     d_scaffold.set_defaults(wire_pyproject=True)
 
+    d_autofix = dev_sub.add_parser(
+        "autofix-pr",
+        help="Build a risk-thresholded local autofix PR plan",
+    )
+    d_autofix.add_argument(
+        "--path",
+        type=str,
+        default=None,
+        help="Project root directory (default: auto-detected)",
+    )
+    d_autofix.add_argument(
+        "--state",
+        type=str,
+        default=None,
+        help="Path to state file",
+    )
+    d_autofix.add_argument(
+        "--max-fixers",
+        type=int,
+        default=3,
+        help="Maximum fixer commands selected for one batch (default: 3)",
+    )
+    d_autofix.add_argument(
+        "--risk-threshold",
+        type=float,
+        default=12.0,
+        help="Minimum cumulative estimated risk-delta target before stopping (default: 12.0)",
+    )
+    d_autofix.add_argument(
+        "--execute",
+        action="store_true",
+        help="Execute selected fixers locally after plan generation",
+    )
+    d_autofix.add_argument(
+        "--create-branch",
+        action="store_true",
+        help="Create a local git branch before --execute runs fixers",
+    )
+    d_autofix.add_argument(
+        "--branch-prefix",
+        type=str,
+        default="autofix",
+        help="Branch prefix used for suggested/generated branch name",
+    )
+    d_autofix.add_argument(
+        "--base-ref",
+        type=str,
+        default="main",
+        help="Base ref used in generated PR plan metadata",
+    )
+
 
 def _add_langs_parser(sub) -> None:
     sub.add_parser("langs", help="List all available language plugins with depth and tools")
