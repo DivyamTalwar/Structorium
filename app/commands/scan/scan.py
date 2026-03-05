@@ -19,10 +19,11 @@ from app.commands.scan.scan_helpers import (  # noqa: F401 (re-exports)
     _audit_excluded_dirs,
     _collect_codebase_metrics,
     _effective_include_slow,
-    format_delta,
     _resolve_scan_profile,
     _warn_explicit_lang_with_no_files,
+    format_delta,
 )
+from app.commands.scan.scan_orchestrator import ScanOrchestrator
 from app.commands.scan.scan_reporting_analysis import (
     show_post_scan_analysis,
 )
@@ -40,7 +41,6 @@ from app.commands.scan.scan_reporting_summary import (  # noqa: F401
     show_score_delta,
     show_strict_target_progress,
 )
-from app.commands.scan.scan_orchestrator import ScanOrchestrator
 from app.commands.scan.scan_workflow import (
     ScanStateContractError,
     merge_scan_results,
@@ -49,8 +49,14 @@ from app.commands.scan.scan_workflow import (
     resolve_noise_snapshot,
     run_scan_generation,
 )
-from core.query import write_query
+from core._internal.text_utils import get_project_root
 from core.output_api import colorize
+from core.query import write_query
+from intelligence.new_code_gate import (
+    evaluate_new_code_gate,
+    render_new_code_gate_report,
+    resolve_new_code_gate_settings,
+)
 
 
 def _print_scan_header(lang_label: str) -> None:
@@ -197,7 +203,21 @@ def cmd_scan(args: argparse.Namespace) -> None:
     else:  # Backward-compatible shape for monkeypatched tests.
         badge_path = badge_emit
     _print_llm_summary(runtime.state, badge_path, narrative, merge.diff)
+    gate_settings = resolve_new_code_gate_settings(
+        runtime.config,
+        profile=runtime.profile,
+    )
+    gate_result = evaluate_new_code_gate(
+        state=runtime.state,
+        repo_root=get_project_root(),
+        settings=gate_settings,
+        scan_path=runtime.state.get("scan_path"),
+    )
+    for line, style in render_new_code_gate_report(gate_result):
+        print(colorize(line, style))
     auto_update_skill()
+    if gate_settings.enabled and not gate_result.passed:
+        raise SystemExit(3)
 
 
 __all__ = [
