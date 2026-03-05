@@ -154,6 +154,11 @@ CONFIG_SCHEMA: dict[str, ConfigKey] = {
         "neo4j",
         "Neo4j database name",
     ),
+    "ai_temporal_max_commits": ConfigKey(
+        int,
+        240,
+        "Git commit window used for temporal coupling/ripple analysis",
+    ),
 }
 
 
