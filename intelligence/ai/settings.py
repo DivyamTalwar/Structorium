@@ -59,6 +59,7 @@ class AISettings:
     neo4j_user: str
     neo4j_password: str | None
     neo4j_database: str
+    incremental_review_max_entries: int = 10
 
     @property
     def has_openai(self) -> bool:
@@ -147,6 +148,15 @@ def resolve_ai_settings(config: dict[str, Any] | None) -> AISettings:
     if chunk_overlap_chars >= chunk_chars:
         chunk_overlap_chars = max(0, chunk_chars // 4)
 
+    incremental_review_max_entries = _as_int(
+        os.environ.get(
+            "STRUCTORIUM_AI_INCREMENTAL_MAX_ENTRIES",
+            cfg.get("ai_incremental_review_max_entries"),
+        ),
+        default=10,
+        minimum=1,
+    )
+
     openai_api_key = _as_str(os.environ.get("OPENAI_API_KEY"), default="") or None
     cohere_api_key = _as_str(os.environ.get("COHERE_API_KEY"), default="") or None
     turbopuffer_api_key = (
@@ -224,6 +234,7 @@ def resolve_ai_settings(config: dict[str, Any] | None) -> AISettings:
         neo4j_user=neo4j_user,
         neo4j_password=neo4j_password,
         neo4j_database=neo4j_database,
+        incremental_review_max_entries=incremental_review_max_entries,
     )
 
 

@@ -272,7 +272,9 @@ def _render_scan_evidence_note() -> str:
         "with aggregated signals from all mechanical detectors — including complexity hotspots, "
         "error hotspots, signal density index (files flagged by multiple detectors), boundary "
         "violations, and systemic patterns. Consult this section for investigative leads beyond "
-        "the seed files.\n\n"
+        "the seed files.\n"
+        "AI context memory: if present, use `ai_context.incremental_review` to avoid repeating "
+        "already-addressed feedback and to continue commit-by-commit reasoning.\n\n"
     )
 
 

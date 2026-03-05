@@ -10,24 +10,26 @@ import state as state_mod
 from app.commands.helpers.query import write_query
 from app.commands.helpers.score import target_strict_score_from_config
 from app.commands.helpers.score_update import print_score_update
-from app.commands.scan import (
-    scan_reporting_dimensions as reporting_dimensions_mod,
-)
+from app.commands.review import import_helpers as import_helpers_mod
 from app.commands.review.assessment_integrity import (
     bind_scorecard_subjective_at_target,
     subjective_at_target_dimensions,
 )
-from app.commands.review import import_helpers as import_helpers_mod
+from app.commands.scan import (
+    scan_reporting_dimensions as reporting_dimensions_mod,
+)
+from core._internal.text_utils import get_project_root
+from core.output_api import colorize
 from intelligence import integrity as subjective_integrity_mod
 from intelligence import narrative as narrative_mod
 from intelligence import review as review_mod
+from intelligence.ai.incremental_memory import record_review_import_memory
 from intelligence.narrative.core import NarrativeContext
 from intelligence.review.dimensions import normalize_dimension_name
 from intelligence.review.importing.contracts import (
     AssessmentImportPolicyModel,
     ReviewImportPayload,
 )
-from core.output_api import colorize
 
 _SCORECARD_SUBJECTIVE_AT_TARGET = bind_scorecard_subjective_at_target(
     reporting_dimensions_mod=reporting_dimensions_mod,
@@ -266,6 +268,15 @@ def do_import(
     state.clear()
     state.update(working_state)
     state_mod.save_state(state, state_file)
+    try:
+        record_review_import_memory(
+            repo_root=get_project_root(),
+            findings_payload=findings_data,
+            assessment_mode=assessment_policy.mode,
+        )
+    except (OSError, ValueError):
+        # Best-effort memory persistence should never block imports.
+        pass
 
     lang_name = lang.name
     narrative = narrative_mod.compute_narrative(
