@@ -154,6 +154,11 @@ CONFIG_SCHEMA: dict[str, ConfigKey] = {
         "neo4j",
         "Neo4j database name",
     ),
+    "ai_incremental_review_max_entries": ConfigKey(
+        int,
+        10,
+        "Max persisted review-memory entries included in AI context",
+    ),
 }
 
 

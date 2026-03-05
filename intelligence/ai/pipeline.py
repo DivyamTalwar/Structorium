@@ -9,6 +9,7 @@ from pathlib import Path
 from core.discovery_api import read_file_text, rel
 
 from .embeddings import embed_query, embed_texts
+from .incremental_memory import build_incremental_review_memory
 from .neo4j_store import GraphNeighbors, Neo4jStore, Neo4jUnavailableError
 from .rerank import rerank_documents
 from .settings import AISettings, provider_status
@@ -131,6 +132,15 @@ def build_ai_review_context(
             for item in neighbors
         ],
     }
+    focus_paths = _top_hit_paths(hits, max_paths=14) or [
+        chunk.file for chunk in chunks[:14]
+    ]
+    context["incremental_review"] = build_incremental_review_memory(
+        repo_root=repo_root,
+        focus_files=focus_paths,
+        max_feedback_entries=settings.incremental_review_max_entries,
+        max_commits=240,
+    )
     context["query"] = query_text
     return context
 
