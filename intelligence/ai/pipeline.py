@@ -13,6 +13,7 @@ from .incremental_memory import build_incremental_review_memory
 from .neo4j_store import GraphNeighbors, Neo4jStore, Neo4jUnavailableError
 from .rerank import rerank_documents
 from .settings import AISettings, provider_status
+from .temporal_coupling import compute_temporal_coupling
 from .turbopuffer_store import TurbopufferStore, TurbopufferUnavailableError, VectorHit
 
 
@@ -139,7 +140,12 @@ def build_ai_review_context(
         repo_root=repo_root,
         focus_files=focus_paths,
         max_feedback_entries=settings.incremental_review_max_entries,
-        max_commits=240,
+        max_commits=settings.temporal_coupling_max_commits,
+    )
+    context["temporal_coupling"] = compute_temporal_coupling(
+        repo_root=repo_root,
+        focus_files=focus_paths,
+        max_commits=settings.temporal_coupling_max_commits,
     )
     context["query"] = query_text
     return context

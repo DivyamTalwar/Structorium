@@ -274,7 +274,8 @@ def _render_scan_evidence_note() -> str:
         "violations, and systemic patterns. Consult this section for investigative leads beyond "
         "the seed files.\n"
         "AI context memory: if present, use `ai_context.incremental_review` to avoid repeating "
-        "already-addressed feedback and to continue commit-by-commit reasoning.\n\n"
+        "already-addressed feedback and to continue commit-by-commit reasoning, and use "
+        "`ai_context.temporal_coupling` to prioritize ripple-risk files before scoring.\n\n"
     )
 
 
