@@ -98,7 +98,7 @@ jobs:
       - name: Tests Core
         run: make tests PYTEST_XML=pytest-core.xml
       - name: Upload core report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pytest-core-report
@@ -120,7 +120,7 @@ jobs:
       - name: Tests Full
         run: make tests-full PYTEST_XML=pytest-full.xml
       - name: Upload full report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pytest-full-report
@@ -142,7 +142,7 @@ jobs:
       - name: Package smoke
         run: make package-smoke
       - name: Upload dist packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dist-packages
