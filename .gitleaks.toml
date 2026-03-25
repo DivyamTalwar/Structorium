@@ -15,14 +15,30 @@ regexes = [
 [[allowlists]]
 description = "Intentional secret-shaped fixtures for detector coverage"
 paths = [
-  '''^tests/detectors/security/test_rules\.py$''',
-  '''^tests/detectors/security/test_security\.py$''',
+  '''(^|/)tests/detectors/security/test_rules\.py$''',
+  '''(^|/)tests/detectors/security/test_security\.py$''',
+  '''(^|/)structorium/tests/detectors/security/test_rules\.py$''',
+  '''(^|/)structorium/tests/detectors/security/test_security\.py$''',
 ]
 regexes = [
   '''AKIA1234567890ABCDEF''',
   '''ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl''',
   '''sk_live_abcdefghijklmnopqrst''',
   '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.abc123_-xyz''',
+]
+
+[[allowlists]]
+description = "Placeholder auth values used in tests and env/composition templates"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)docker-compose\.neo4j\.yml$''',
+]
+regexes = [
+  '''OPENAI_API_KEY=$''',
+  '''COHERE_API_KEY=$''',
+  '''TURBOPUFFER_API_KEY=$''',
+  '''NEO4J_PASSWORD=$''',
+  '''NEO4J_AUTH=\$\{NEO4J_USERNAME:-neo4j\}/\$\{NEO4J_PASSWORD:-changeme\}''',
 ]
 
 [[allowlists]]
