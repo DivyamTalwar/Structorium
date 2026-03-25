@@ -31,6 +31,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v6
         with:
@@ -39,6 +40,7 @@ jobs:
       - name: Run gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           GITLEAKS_CONFIG: .gitleaks.toml
           GITLEAKS_ENABLE_COMMENTS: false
 
@@ -77,6 +79,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[full]"
+          python -m pip install --upgrade "pygments>=2.19.3"
           python -m pip freeze --exclude-editable > .pip-audit-requirements.txt
           python -m pip install pip-audit
       - name: Run pip-audit
