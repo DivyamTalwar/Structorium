@@ -6,7 +6,6 @@
 <h3 align="center">Architecture. Automatically Enforced.</h3>
 
 <p align="center">
-  <a href="https://pypi.org/project/structorium/"><img src="https://img.shields.io/pypi/v/structorium?style=flat-square&color=FF4500" alt="PyPI"/></a>
   <img src="https://img.shields.io/badge/python-3.11+-050505?style=flat-square" alt="Python"/>
   <img src="https://img.shields.io/badge/languages-28-FF4500?style=flat-square" alt="Languages"/>
   <img src="https://img.shields.io/badge/detectors-30+-050505?style=flat-square" alt="Detectors"/>
@@ -29,15 +28,15 @@ This is not a typical README. This is the **complete operating manual** — a 2,
 
 | If you want… | Go to… |
 |:-------------|:-------|
-| Quick install and first scan | [§ Installation](#-installation) → [§ First Scan](#-first-scan--fix-loop) |
-| Understand the core workflow | [§ The Operating Loop](#-the-operating-loop) |
-| Score math and anti-gaming mechanics | [§ Scoring Model](#-scoring-model-deep-dive) → [§ Anti-Gaming](#-anti-gaming-deep-dive) |
-| Compare to SonarQube, CodeQL, etc. | [§ Competitive Positioning](#-competitive-positioning) |
-| Full command reference | [§ Command Atlas](#-command-atlas) |
-| All 28 languages and capabilities | [§ Language Coverage Atlas](#-language-coverage-atlas) |
-| CI integration and enforcement | [§ New-Code Gate](#-new-code-gate) → [§ CI Integration](#-ci-integration-playbook) |
-| Review system and AI context | [§ Review System](#-review-system-deep-dive) → [§ AI Context Layer](#-ai-context-layer) |
-| Production playbooks | [§ Operator Scenarios](#-real-operator-scenarios) |
+| Quick install and first scan | [Installation](#-installation) → [First Scan](#-first-scan--fix-loop) |
+| Understand the core workflow | [The Operating Loop](#-the-operating-loop) |
+| Score math and anti-gaming mechanics | [Scoring Model](#-scoring-model-deep-dive) → [Anti-Gaming](#-anti-gaming-deep-dive) |
+| Compare to SonarQube, CodeQL, etc. | [Competitive Positioning](#-competitive-positioning) |
+| Full command reference | [Command Atlas](#-command-atlas) |
+| All 28 languages and capabilities | [Language Coverage Atlas](#-language-coverage-atlas) |
+| CI integration and enforcement | [New-Code Gate](#-new-code-gate) → [CI Integration](#-ci-integration-playbook) |
+| Review system and AI context | [Review System](#-review-system-deep-dive) → [AI Context Layer](#-ai-context-layer) |
+| Production playbooks | [Operator Scenarios](#-real-operator-scenarios) |
 
 > **Estimated reading time**: ~45 minutes for the full document. ~10 minutes for quick start only.
 
@@ -45,15 +44,18 @@ This is not a typical README. This is the **complete operating manual** — a 2,
 
 ## Storyboard
 
+The 5-step operational flow, from codebase scan to CI enforcement.
+
 <p align="center">
-  <img src="assets/readme/storyboard_scan.png" width="32%" alt="Codebase under scan"/>
-  <img src="assets/readme/storyboard_queue.png" width="32%" alt="Ranked priority queue"/>
-  <img src="assets/readme/storyboard_score.png" width="32%" alt="Score progression"/>
-</p>
-<p align="center">
-  <img src="assets/readme/storyboard_review.png" width="32%" alt="Review with AI context"/>
-  <img src="assets/readme/storyboard_gate.png" width="32%" alt="CI gate blocking PR"/>
-  <img src="assets/readme/scoring_model.png" width="32%" alt="Scoring model"/>
+  <img src="assets/readme/storyboard_scan.png" width="100%" alt="Codebase under scan"/>
+  <br/><br/>
+  <img src="assets/readme/storyboard_queue.png" width="100%" alt="Ranked priority queue"/>
+  <br/><br/>
+  <img src="assets/readme/storyboard_review.png" width="100%" alt="Review with AI context"/>
+  <br/><br/>
+  <img src="assets/readme/storyboard_gate.png" width="100%" alt="CI gate blocking PR"/>
+  <br/><br/>
+  <img src="assets/readme/storyboard_score.png" width="100%" alt="Score progression"/>
 </p>
 
 ---
@@ -64,15 +66,15 @@ These diagrams are referenced throughout this document. Each one is explained in
 
 | Diagram | Section | What It Shows |
 |:--------|:--------|:-------------|
-| [Operating Loop](assets/readme/operating_loop.png) | [§ Operating Loop](#-the-operating-loop) | The 7-stage scan → fix → gate cycle |
-| [Scan Pipeline](assets/readme/scan_pipeline.png) | [§ Scan Deep Dive](#-scan-deep-dive) | How scan works with parallel detectors |
-| [Scoring Model](assets/readme/scoring_model.png) | [§ Scoring Model](#-scoring-model-deep-dive) | 40/60 split, 4 score types, anti-gaming |
-| [Plugin Architecture](assets/readme/plugin_architecture.png) | [§ Plugin Architecture](#-plugin-architecture) | 28 languages in 3 layers |
-| [Review Pipeline](assets/readme/review_pipeline.png) | [§ Review System](#-review-system-deep-dive) | prepare → batch → validate → merge |
-| [AI Context Stack](assets/readme/ai_context_stack.png) | [§ AI Context Layer](#-ai-context-layer) | 7-layer AI enrichment stack |
-| [New-Code Gate](assets/readme/new_code_gate.png) | [§ New-Code Gate](#-new-code-gate) | CI enforcement with 3 policy profiles |
-| [Fix/Resolve/Move](assets/readme/fix_resolve_move.png) | [§ Fix & Resolve](#-fix-resolve-move--anti-gaming) | Resolution paths + auto-fixers |
-| [Language Atlas](assets/readme/language_atlas.png) | [§ Language Atlas](#-language-coverage-atlas) | 6 full + 22 generic capabilities |
+| [Operating Loop](assets/readme/operating_loop.png) | [Operating Loop](#-the-operating-loop) | The 7-stage scan → fix → gate cycle |
+| [Scan Pipeline](assets/readme/scan_pipeline.png) | [Scan Deep Dive](#-scan-deep-dive) | How scan works with parallel detectors |
+| [Scoring Model](assets/readme/scoring_model.png) | [Scoring Model](#-scoring-model-deep-dive) | 40/60 split, 4 score types, anti-gaming |
+| [Plugin Architecture](assets/readme/plugin_architecture.png) | [Plugin Architecture](#-plugin-architecture) | 28 languages in 3 layers |
+| [Review Pipeline](assets/readme/review_pipeline.png) | [Review System](#-review-system-deep-dive) | prepare → batch → validate → merge |
+| [AI Context Stack](assets/readme/ai_context_stack.png) | [AI Context Layer](#-ai-context-layer) | 7-layer AI enrichment stack |
+| [New-Code Gate](assets/readme/new_code_gate.png) | [New-Code Gate](#-new-code-gate) | CI enforcement with 3 policy profiles |
+| [Fix/Resolve/Move](assets/readme/fix_resolve_move.png) | [Fix & Resolve](#-fix-resolve-move--anti-gaming) | Resolution paths + auto-fixers |
+| [Language Atlas](assets/readme/language_atlas.png) | [Language Atlas](#-language-coverage-atlas) | 6 full + 22 generic capabilities |
 
 ---
 
