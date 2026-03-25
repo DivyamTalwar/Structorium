@@ -47,6 +47,7 @@ full = [
   "Pillow>=9.0.0",
   "neo4j>=5.20.0",
   "turbopuffer>=0.6.0",
+  "pygments>=2.19.3",
 ]
 
 [project.scripts]
