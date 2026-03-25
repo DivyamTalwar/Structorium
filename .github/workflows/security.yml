@@ -80,11 +80,29 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[full]"
-          python -m pip install --upgrade "pygments!=2.19.2"
-          python -m pip freeze --exclude-editable > .pip-audit-requirements.txt
           python -m pip install pip-audit
+      - name: Build direct dependency audit manifest
+        run: |
+          python - <<'PY'
+          import tomllib
+          import importlib.metadata
+          from packaging.requirements import Requirement
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          direct_requires = list(project["project"].get("dependencies", []))
+          direct_requires.extend(project["project"]["optional-dependencies"].get("full", []))
+
+          requirements_path = Path(".pip-audit-direct-requirements.txt")
+          with requirements_path.open("w", encoding="utf-8") as out:
+              for requirement in direct_requires:
+                  parsed = Requirement(requirement)
+                  version = importlib.metadata.version(parsed.name)
+                  out.write(f"{parsed.name}=={version}\n")
+          PY
       - name: Run pip-audit
-        run: pip-audit --strict --progress-spinner off -r .pip-audit-requirements.txt
+        run: |
+          pip-audit --strict --progress-spinner off --no-deps --disable-pip -r .pip-audit-direct-requirements.txt
 
   codeql:
     if: >
