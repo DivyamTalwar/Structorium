@@ -3,33 +3,29 @@ title = "Structorium gitleaks config"
 [extend]
 useDefault = true
 
-[[allowlists]]
-description = "Blank example env placeholders are not secrets"
+[allowlist]
+description = "Intentional secret-shaped fixtures and template placeholders"
 paths = [
-  '''^\.env\.example$''',
-]
-regexes = [
-  '''(?m)^(OPENAI_API_KEY|COHERE_API_KEY|TURBOPUFFER_API_KEY|NEO4J_PASSWORD)=$''',
-]
-
-[[allowlists]]
-description = "Intentional secret-shaped fixtures for detector coverage"
-paths = [
-  '''^tests/detectors/security/test_rules\.py$''',
-  '''^tests/detectors/security/test_security\.py$''',
-]
-regexes = [
-  '''AKIA1234567890ABCDEF''',
-  '''ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl''',
-  '''sk_live_abcdefghijklmnopqrst''',
-  '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.abc123_-xyz''',
-]
-
-[[allowlists]]
-description = "Ignore generated caches and local virtualenvs during filesystem scans"
-paths = [
+  '''(^|/)tests/detectors/security/test_rules\.py$''',
+  '''(^|/)tests/detectors/security/test_security\.py$''',
+  '''(^|/)structorium/tests/detectors/security/test_rules\.py$''',
+  '''(^|/)structorium/tests/detectors/security/test_security\.py$''',
+  '''(^|/)\.env\.example$''',
+  '''(^|/)docker-compose\.neo4j\.yml$''',
   '''(^|/)\.venv/''',
   '''(^|/)__pycache__/''',
   '''(^|/)\.pkg-smoke/''',
   '''(^|/)dist/''',
+]
+regexes = [
+  '''(?m)^(OPENAI_API_KEY|COHERE_API_KEY|TURBOPUFFER_API_KEY|NEO4J_PASSWORD)=$''',
+  '''AKIA1234567890ABCDEF''',
+  '''ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl''',
+  '''sk_live_abcdefghijklmnopqrst''',
+  '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.abc123_-xyz''',
+  '''NEO4J_AUTH=\$\{NEO4J_USERNAME:-neo4j\}/\$\{NEO4J_PASSWORD:-changeme\}''',
+  '''OPENAI_API_KEY=$''',
+  '''COHERE_API_KEY=$''',
+  '''TURBOPUFFER_API_KEY=$''',
+  '''NEO4J_PASSWORD=$''',
 ]
