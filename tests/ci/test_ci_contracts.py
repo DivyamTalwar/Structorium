@@ -17,6 +17,8 @@ CI_PLAN = REPO_ROOT / "docs" / "ci_plan.md"
 MAKEFILE = REPO_ROOT / "Makefile"
 README = REPO_ROOT / "README.md"
 PYPROJECT = REPO_ROOT / "pyproject.toml"
+SETUP_PYTHON_ACTION = "actions/setup-python@v6"
+SETUP_DOTNET_ACTION = "actions/setup-dotnet@v5"
 
 
 def _load_yaml(path: Path) -> dict:
@@ -63,8 +65,8 @@ def test_ci_workflow_jobs_are_bound_to_make_targets() -> None:
         assert any(expected_cmd in run for run in runs), (
             f"{job_name} must execute `{expected_cmd}` for local/CI parity."
         )
-        assert any(step.get("uses") == "actions/setup-python@v5" for step in job["steps"]), (
-            f"{job_name} should use actions/setup-python@v5."
+        assert any(step.get("uses") == SETUP_PYTHON_ACTION for step in job["steps"]), (
+            f"{job_name} should use {SETUP_PYTHON_ACTION}."
         )
 
 
@@ -86,7 +88,7 @@ def test_integration_workflow_uses_deterministic_roslyn_path() -> None:
         job["env"]["STRUCTORIUM_TEST_CSHARP_ROSLYN_CMD"]
         == "python .github/scripts/roslyn_stub.py"
     )
-    assert any(step.get("uses") == "actions/setup-dotnet@v4" for step in job["steps"])
+    assert any(step.get("uses") == SETUP_DOTNET_ACTION for step in job["steps"])
     assert any("make integration-roslyn" in run for run in _run_commands(job))
 
 
@@ -105,6 +107,7 @@ def test_publish_workflow_keeps_release_safety_gates() -> None:
     assert "Run packaging smoke gate" in names
     assert "Publish to PyPI" in names
     assert any("make package-smoke" in run for run in _run_commands(publish_job))
+    assert any(step.get("uses") == SETUP_PYTHON_ACTION for step in publish_job["steps"])
 
 
 def test_makefile_contains_ci_gate_targets() -> None:
