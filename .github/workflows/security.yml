@@ -26,6 +26,22 @@ env:
   PYTHONUNBUFFERED: "1"
 
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_COMMENTS: false
+
   dependency-review:
     if: >
       github.event_name == 'pull_request' &&
@@ -64,7 +80,7 @@ jobs:
           python -m pip freeze --exclude-editable > .pip-audit-requirements.txt
           python -m pip install pip-audit
       - name: Run pip-audit
-        run: pip-audit --strict --progress-spinner off -r .pip-audit-requirements.txt --ignore-vuln CVE-2026-4539
+        run: pip-audit --strict --progress-spinner off -r .pip-audit-requirements.txt
 
   codeql:
     if: >
