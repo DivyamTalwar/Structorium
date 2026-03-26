@@ -185,14 +185,14 @@ class TestCrossLangSecretNames:
         finally:
             os.unlink(path)
 
-    def test_hardcoded_secret_in_test_zone_skipped(self):
+    def test_hardcoded_secret_in_test_zone_allowed(self):
         content = 'password = "test_secret_value123"'
         path = _write_temp_file(content)
         try:
             zm = _make_zone_map([path], Zone.TEST)
             entries, scanned = detect_security_issues([path], zm, "python")
-            assert entries == []
-            assert scanned == 0
+            assert len(entries) > 0
+            assert scanned == 1
         finally:
             os.unlink(path)
 
@@ -322,25 +322,25 @@ class TestCrossLangZoneFiltering:
         finally:
             os.unlink(path)
 
-    def test_test_zone_skipped(self):
+    def test_test_zone_allowed(self):
         content = 'AWS_KEY = "AKIAIOSFODNN7EXAMPLE"'
         path = _write_temp_file(content)
         try:
             zm = _make_zone_map([path], Zone.TEST)
             entries, scanned = detect_security_issues([path], zm, "python")
-            assert len(entries) == 0
-            assert scanned == 0
+            assert len(entries) > 0
+            assert scanned == 1
         finally:
             os.unlink(path)
 
-    def test_config_zone_skipped(self):
+    def test_config_zone_allowed(self):
         content = 'DB_URL = "postgres://admin:s3cret@localhost:5432/mydb"'
         path = _write_temp_file(content)
         try:
             zm = _make_zone_map([path], Zone.CONFIG)
             entries, scanned = detect_security_issues([path], zm, "python")
-            assert len(entries) == 0
-            assert scanned == 0
+            assert len(entries) > 0
+            assert scanned == 1
         finally:
             os.unlink(path)
 
