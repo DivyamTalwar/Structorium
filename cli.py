@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 from pathlib import Path
@@ -83,8 +84,16 @@ def _resolve_default_path(args) -> None:
                 saved = load_state(state_file)
                 saved_path = saved.get("scan_path")
                 if saved_path:
-                    args.path = str((runtime_root / saved_path).resolve())
-                    return
+                    # Normalize and sandbox: resolve the path and verify it
+                    # stays within the project root to prevent traversal.
+                    candidate = (runtime_root / saved_path).resolve()
+                    if candidate == runtime_root or runtime_root in candidate.parents:
+                        args.path = str(candidate)
+                        return
+                    logger.warning(
+                        "Persisted scan_path %r resolves outside project root; ignoring.",
+                        saved_path,
+                    )
         except (OSError, KeyError, ValueError, TypeError, AttributeError) as exc:
             logger.debug("Failed to resolve default path from saved state: %s", exc)
     lang = resolve_lang(args)
@@ -105,10 +114,13 @@ def _load_shared_runtime(args) -> None:
     args.runtime = CommandRuntime(config=config, state=state, state_path=state_file)
 
 
-def _resolve_handler(command: str):
+def _resolve_handler(command: str | None):
+    """Resolve a CLI command to its handler, or return None for unknown commands."""
+    if not command:
+        return None
     from app.commands.registry import get_command_handlers
 
-    return get_command_handlers()[command]
+    return get_command_handlers().get(command)
 
 
 def _handle_help_command(args, parser) -> None:
@@ -144,12 +156,63 @@ def main() -> None:
             _load_shared_runtime(args)
 
             handler = _resolve_handler(args.command)
+            if handler is None:
+                available = ", ".join(sorted(
+                    __import__("app.commands.registry", fromlist=["get_command_handlers"])
+                    .get_command_handlers()
+                    .keys()
+                ))
+                print(
+                    colorize(
+                        f"  Unknown command: {args.command!r}. "
+                        f"Available commands: {available}",
+                        "red",
+                    ),
+                    file=sys.stderr,
+                )
+                sys.exit(1)
             handler(args)
     except LangResolutionError as exc:
         print(colorize(f"  {exc.message}", "red"), file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
         print("\nInterrupted.")
+        sys.exit(1)
+    except SystemExit:
+        raise
+    except ValueError as exc:
+        # Covers ReviewValidationError and other validation errors from
+        # command handlers — clean user-facing message without traceback.
+        print(colorize(f"  Error: {exc}", "red"), file=sys.stderr)
+        sys.exit(1)
+    except (OSError, json.JSONDecodeError) as exc:
+        # Config/state file I/O or parse errors.
+        print(
+            colorize(f"  Error loading project data: {exc}", "red"),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except ImportError as exc:
+        # Command module or plugin failed to load.
+        print(
+            colorize(
+                f"  Error loading command module: {exc}. "
+                f"Try reinstalling structorium.",
+                "red",
+            ),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except Exception as exc:
+        # Last-resort catch: prevents raw tracebacks reaching the user.
+        logger.debug("Unhandled error in CLI dispatch", exc_info=True)
+        print(
+            colorize(
+                f"  Unexpected error: {type(exc).__name__}: {exc}",
+                "red",
+            ),
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 
