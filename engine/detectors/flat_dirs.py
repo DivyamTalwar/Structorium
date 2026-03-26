@@ -112,10 +112,6 @@ def detect_flat_dirs(
         dir_counts[parent] += 1
         # Track direct subdirectory fan-out for every ancestor.
         parts = parent_rel.parts
-        if parts:
-            child_dirs.setdefault(str(scan_root), set()).add(
-                str((scan_root / parts[0]).resolve())
-            )
         for idx in range(len(parts) - 1):
             ancestor = (scan_root / Path(*parts[: idx + 1])).resolve()
             child = (scan_root / Path(*parts[: idx + 2])).resolve()

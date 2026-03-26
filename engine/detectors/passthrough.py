@@ -53,9 +53,7 @@ def classify_params(
     passthrough = []
     direct = []
     for name in params:
-        # Use (?<![\\w]) and (?![\\w]) instead of \\b to safely match params with non-word chars (e.g. $var)
-        escaped_name = re.escape(name)
-        total = len(re.findall(rf"(?<![\w]){escaped_name}(?![\w])", body))
+        total = len(re.findall(rf"\b{re.escape(name)}\b", body))
         if total == 0:
             # Unused param — not passthrough, not direct-use either.
             # Count as direct (it's destructured, just unused).
