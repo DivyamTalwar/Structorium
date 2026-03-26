@@ -11,27 +11,25 @@ from core._internal.text_utils import get_project_root
 
 def matches_exclusion(rel_path: str, exclusion: str) -> bool:
     """Check if a relative path matches an exclusion pattern."""
-    normalized_path = rel_path.lstrip("./")
-    parts = Path(normalized_path).parts
-    if exclusion in parts:
-        return True
-    if "*" in exclusion:
-        import fnmatch
+    import fnmatch
 
-        if any(fnmatch.fnmatch(part, exclusion) for part in parts):
+    normalized_path = rel_path.lstrip("./").replace("\\", "/")
+    normalized_excl = exclusion.lstrip("./").replace("\\", "/")
+    parts = tuple(part for part in normalized_path.split("/") if part)
+    if normalized_excl in parts:
+        return True
+
+    if "*" in normalized_excl:
+        if any(fnmatch.fnmatch(part, normalized_excl) for part in parts):
             return True
-        # Full-path glob match for patterns with directory separators
-        # (e.g. "Wan2GP/**" should match "Wan2GP/models/rf.py").
-        if "/" in exclusion or os.sep in exclusion:
-            if fnmatch.fnmatch(normalized_path, exclusion):
-                return True
-    if "/" in exclusion or os.sep in exclusion:
-        normalized = exclusion.rstrip("/").rstrip(os.sep)
-        return normalized_path == normalized or normalized_path.startswith(
-            normalized + "/"
-        ) or normalized_path.startswith(
-            normalized + os.sep
-        )
+        if "/" in normalized_excl and fnmatch.fnmatch(normalized_path, normalized_excl):
+            return True
+
+    if "/" in normalized_excl:
+        clean_excl = normalized_excl.rstrip("/")
+        if normalized_path == clean_excl or normalized_path.startswith(clean_excl + "/"):
+            return True
+
     return False
 
 

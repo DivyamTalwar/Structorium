@@ -487,8 +487,9 @@ def merge_scan_results(
 
         if dirty:
             save_plan(plan, plan_path)
-    except Exception:
-        pass  # Plan reconciliation is best-effort
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Plan reconciliation failed: %s", exc)
 
     return ScanMergeResult(
         diff=diff,
