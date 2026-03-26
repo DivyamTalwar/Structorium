@@ -11,9 +11,10 @@ from pathlib import Path
 class FileTextCache:
     """Optional read-through file-text cache used by scan/review passes."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, max_entries: int = 256) -> None:
         self._enabled = False
         self._values: dict[str, str | None] = {}
+        self.max_entries = max_entries
 
     def enable(self) -> None:
         self._enabled = True
@@ -25,14 +26,22 @@ class FileTextCache:
 
     def read(self, filepath: str) -> str | None:
         if self._enabled and filepath in self._values:
-            return self._values[filepath]
+            # Refresh position for LRU-like behavior
+            content = self._values.pop(filepath)
+            self._values[filepath] = content
+            return content
 
         try:
             content = Path(filepath).read_text(errors="replace")
         except OSError:
             content = None
+            
         if self._enabled:
+            # Enforce bounds
+            if len(self._values) >= self.max_entries:
+                self._values.pop(next(iter(self._values)))
             self._values[filepath] = content
+            
         return content
 
 
