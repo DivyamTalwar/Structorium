@@ -86,6 +86,10 @@ def save_plan(plan: PlanModel | dict, path: Path | None = None) -> None:
 
 def plan_path_for_state(state_path: Path) -> Path:
     """Derive plan.json path from a state file path."""
+    name = state_path.name
+    if name.startswith("state-") and name.endswith(".json"):
+        lang_part = name[len("state-") : -len(".json")]
+        return state_path.parent / f"plan-{lang_part}.json"
     return state_path.parent / "plan.json"
 
 

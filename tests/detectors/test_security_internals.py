@@ -38,10 +38,10 @@ def test_should_scan_file_production_zone():
     assert _should_scan_file("/app/main.py", zm) is True
 
 
-def test_should_scan_file_test_zone_excluded():
-    """Test files are excluded from security scanning."""
+def test_should_scan_file_test_zone_allowed():
+    """Test files are included in security scanning."""
     zm = _make_zone_map([("/tests/test_foo.py", Zone.TEST)])
-    assert _should_scan_file("/tests/test_foo.py", zm) is False
+    assert _should_scan_file("/tests/test_foo.py", zm) is True
 
 
 def test_should_scan_file_vendor_zone_excluded():
@@ -56,10 +56,10 @@ def test_should_scan_file_generated_zone_excluded():
     assert _should_scan_file("/generated/schema.py", zm) is False
 
 
-def test_should_scan_file_config_zone_excluded():
-    """Config files are excluded from security scanning."""
+def test_should_scan_file_config_zone_allowed():
+    """Config files are included in security scanning."""
     zm = _make_zone_map([("/config.py", Zone.CONFIG)])
-    assert _should_scan_file("/config.py", zm) is False
+    assert _should_scan_file("/config.py", zm) is True
 
 
 def test_should_scan_file_script_zone_allowed():
@@ -122,8 +122,8 @@ def test_should_skip_line_star_comment():
 
 def test_excluded_security_zones_membership():
     """Verify the exact membership of excluded zones."""
-    assert Zone.TEST in _EXCLUDED_SECURITY_ZONES
-    assert Zone.CONFIG in _EXCLUDED_SECURITY_ZONES
+    assert Zone.TEST not in _EXCLUDED_SECURITY_ZONES
+    assert Zone.CONFIG not in _EXCLUDED_SECURITY_ZONES
     assert Zone.GENERATED in _EXCLUDED_SECURITY_ZONES
     assert Zone.VENDOR in _EXCLUDED_SECURITY_ZONES
     assert Zone.PRODUCTION not in _EXCLUDED_SECURITY_ZONES
@@ -191,7 +191,7 @@ def test_detect_security_issues_skips_excluded_zone(tmp_path):
     """Files in excluded zones are not scanned."""
     f = tmp_path / "test_creds.py"
     f.write_text('aws_key = "AKIAIOSFODNN7EXAMPLE"\n')
-    zm = _make_zone_map([(str(f), Zone.TEST)])
+    zm = _make_zone_map([(str(f), Zone.GENERATED)])
     entries, scanned = detect_security_issues([str(f)], zm, "python")
     assert scanned == 0
     assert entries == []

@@ -10,7 +10,7 @@ from engine.detectors.patterns.security import (
 )
 from engine.policy.zones import FileZoneMap, Zone
 
-_EXCLUDED_SECURITY_ZONES = (Zone.TEST, Zone.CONFIG, Zone.GENERATED, Zone.VENDOR)
+_EXCLUDED_SECURITY_ZONES = (Zone.GENERATED, Zone.VENDOR)
 
 
 def _should_scan_file(filepath: str, zone_map: FileZoneMap | None) -> bool:
