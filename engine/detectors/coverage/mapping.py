@@ -40,7 +40,8 @@ def _infer_lang_name(test_files: set[str], production_files: set[str]) -> str | 
             continue
         counts[lang_name] = counts.get(lang_name, 0) + 1
     if counts:
-        return max(counts.items(), key=lambda item: item[1])[0]
+        # Sort by count descending, then by language name alphabetically to ensure deterministic ties
+        return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
     return None
 
 
@@ -71,7 +72,7 @@ def _import_based_mapping(
             prod_by_module[module_name[: -len(".__init__")]] = pf
 
         parts = module_name.split(".")
-        if parts:
+        if parts and parts[-1] not in prod_by_module:
             prod_by_module[parts[-1]] = pf
 
     for tf in test_files:
@@ -370,7 +371,7 @@ def _get_test_files_for_prod(
         module_name = module_name.rsplit(".", 1)[0]
     prod_by_module: dict[str, str] = {module_name: prod_file}
     parts = module_name.split(".")
-    if parts:
+    if parts and parts[-1] not in prod_by_module:
         prod_by_module[parts[-1]] = prod_file
 
     result = []
@@ -407,7 +408,7 @@ def _build_test_import_index(
         if module_name.endswith(".__init__"):
             prod_by_module[module_name[: -len(".__init__")]] = pf
         parts = module_name.split(".")
-        if parts:
+        if parts and parts[-1] not in prod_by_module:
             prod_by_module[parts[-1]] = pf
 
     index: dict[str, set[str]] = {}

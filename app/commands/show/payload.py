@@ -27,9 +27,9 @@ def build_show_payload(
     by_detector: dict[str, int] = defaultdict(int)
     by_tier: dict[int, int] = defaultdict(int)
     for finding in matches:
-        by_file[finding["file"]].append(finding)
-        by_detector[finding["detector"]] += 1
-        by_tier[finding["tier"]] += 1
+        by_file[finding.get("file", "unknown")].append(finding)
+        by_detector[finding.get("detector", "unknown")] += 1
+        by_tier[finding.get("tier", 5)] += 1
 
     payload = {
         "query": pattern,
@@ -43,10 +43,10 @@ def build_show_payload(
         "by_file": {
             fp: [
                 {
-                    "id": f["id"],
-                    "tier": f["tier"],
-                    "confidence": f["confidence"],
-                    "summary": f["summary"],
+                    "id": f.get("id", "tmp-id"),
+                    "tier": f.get("tier", 5),
+                    "confidence": f.get("confidence", "unknown"),
+                    "summary": f.get("summary", "No summary provided"),
                     "detail": f.get("detail", {}),
                 }
                 for f in fs

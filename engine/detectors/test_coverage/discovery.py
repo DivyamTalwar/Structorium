@@ -32,6 +32,7 @@ def _normalize_graph_paths(graph: dict) -> dict:
         norm_graph[rel_key] = {
             **value,
             "imports": {_to_rel(imp) for imp in value.get("imports", set())},
+            "importers": {_to_rel(imp) for imp in value.get("importers", set())},
         }
     return norm_graph
 

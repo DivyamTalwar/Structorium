@@ -48,16 +48,29 @@ def apply_file_move(
 
     Path(dest_abs).parent.mkdir(parents=True, exist_ok=True)
     written_files: dict[str, str] = {}
+    
+    # 1. Snapshot all original file contents explicitly BEFORE the filesystem mutates
+    # We do NOT snapshot source_abs into written_files because the rollback
+    # strategy is handled separately by `_rollback_move_target`. We only snapshot
+    # files whose contents we are going to modify in place.
     try:
+        for filepath in importer_changes:
+            if filepath in new_contents and Path(filepath).exists():
+                written_files[filepath] = Path(filepath).read_text()
+        
+        # 2. Execute the filesystem move
         shutil.move(source_abs, dest_abs)
 
+        # 3. Apply memory modifications to the new destination
         if dest_abs in new_contents:
-            written_files[dest_abs] = Path(dest_abs).read_text()
+            # We don't snapshot dest_abs before this write because if a rollback happens, 
+            # `dest_abs` ceases to exist (it gets moved back to source_abs by `_rollback_move_target`).
+            # In fact, writing to dest_abs during rollback would recreate an orphaned file.
             safe_write_text(dest_abs, new_contents[dest_abs])
 
+        # 4. Apply rest of imports
         for filepath in importer_changes:
             if filepath in new_contents:
-                written_files[filepath] = Path(filepath).read_text()
                 safe_write_text(filepath, new_contents[filepath])
 
     except (OSError, UnicodeDecodeError, shutil.Error) as ex:
@@ -78,25 +91,33 @@ def apply_directory_move(
     """Move a directory and apply external/internal import replacements."""
     Path(dest_abs).parent.mkdir(parents=True, exist_ok=True)
     written_files: dict[str, str] = {}
+
     try:
+        # Snapshot content files prior to mutating
+        for filepath, replacements in external_changes.items():
+            if Path(filepath).exists():
+                written_files[filepath] = Path(filepath).read_text()
+
         shutil.move(source_abs, dest_abs)
 
         for src_file, changes in internal_changes.items():
             rel_in_dir = Path(src_file).relative_to(source_path)
             dest_file = Path(dest_abs) / rel_in_dir
+            if not dest_file.exists():
+                continue
             original = dest_file.read_text()
             content = original
             for old_str, new_str in changes:
                 content = content.replace(old_str, new_str)
-            written_files[str(dest_file)] = original
             safe_write_text(dest_file, content)
 
         for filepath, replacements in external_changes.items():
-            original = Path(filepath).read_text()
+            original = written_files.get(filepath)
+            if original is None:
+                continue
             content = original
             for old_str, new_str in replacements:
                 content = content.replace(old_str, new_str)
-            written_files[filepath] = original
             safe_write_text(filepath, content)
 
     except (OSError, UnicodeDecodeError, shutil.Error) as ex:

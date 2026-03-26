@@ -174,4 +174,4 @@ def is_placeholder(value: str) -> bool:
         return True
     if any(lower.startswith(prefix) for prefix in PLACEHOLDER_PREFIXES):
         return True
-    return len(value) < 8
+    return len(value) < 5
