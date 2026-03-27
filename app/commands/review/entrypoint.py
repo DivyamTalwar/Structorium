@@ -16,6 +16,15 @@ from .preflight import review_rerun_preflight
 from .prepare import do_prepare
 
 
+class ReviewValidationError(ValueError):
+    """Raised when review command flag validation fails.
+
+    Caught by the top-level CLI handler to produce a clean error message
+    without a traceback. This replaces scattered sys.exit() calls to
+    keep exit handling consistent and the function testable.
+    """
+
+
 def _enable_live_review_output() -> None:
     """Best-effort: force line-buffered review output for non-TTY runners."""
     for stream_name in ("stdout", "stderr"):
@@ -29,21 +38,12 @@ def _enable_live_review_output() -> None:
             continue
 
 
-def cmd_review(args: argparse.Namespace) -> None:
-    """Prepare or import subjective code review findings."""
-    _enable_live_review_output()
-    runtime = command_runtime(args)
-    state_file = runtime.state_path
-    state = runtime.state
-    lang = resolve_lang(args)
+def _validate_review_flags(args) -> None:
+    """Validate mutually-exclusive review mode flags up front.
 
-    if not lang:
-        print(
-            colorize("  Error: could not detect language. Use --lang.", "red"),
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
+    Raises ReviewValidationError on invalid flag combinations so that
+    all validation happens before any work is done.
+    """
     merge = bool(getattr(args, "merge", False))
     run_batches = bool(getattr(args, "run_batches", False))
     external_start = bool(getattr(args, "external_start", False))
@@ -61,35 +61,44 @@ def cmd_review(args: argparse.Namespace) -> None:
         bool(validate_import_file),
     ]
     if sum(1 for enabled in mode_flags if enabled) > 1:
-        print(
-            colorize(
-                "  Error: choose one review mode per command "
-                "(--merge | --run-batches | --external-start | --external-submit | --import | --validate-import).",
-                "red",
-            ),
-            file=sys.stderr,
+        raise ReviewValidationError(
+            "choose one review mode per command "
+            "(--merge | --run-batches | --external-start | --external-submit | --import | --validate-import)."
         )
-        sys.exit(1)
 
     if external_submit and not import_file:
-        print(
-            colorize(
-                "  Error: --external-submit requires --import FILE.",
-                "red",
-            ),
-            file=sys.stderr,
+        raise ReviewValidationError(
+            "--external-submit requires --import FILE."
         )
-        sys.exit(2)
 
     if external_submit and not getattr(args, "session_id", None):
-        print(
-            colorize(
-                "  Error: --external-submit requires --session-id.",
-                "red",
-            ),
-            file=sys.stderr,
+        raise ReviewValidationError(
+            "--external-submit requires --session-id."
         )
-        sys.exit(2)
+
+
+def cmd_review(args: argparse.Namespace) -> None:
+    """Prepare or import subjective code review findings."""
+    _enable_live_review_output()
+    runtime = command_runtime(args)
+    state_file = runtime.state_path
+    state = runtime.state
+    lang = resolve_lang(args)
+
+    if not lang:
+        raise ReviewValidationError(
+            "could not detect language. Use --lang."
+        )
+
+    # Validate all flags before doing any work.
+    _validate_review_flags(args)
+
+    merge = bool(getattr(args, "merge", False))
+    run_batches = bool(getattr(args, "run_batches", False))
+    external_start = bool(getattr(args, "external_start", False))
+    external_submit = bool(getattr(args, "external_submit", False))
+    import_file = getattr(args, "import_file", None)
+    validate_import_file = getattr(args, "validate_import_file", None)
 
     if merge:
         from app.commands.review.merge import do_merge

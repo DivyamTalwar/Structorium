@@ -221,9 +221,21 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     p = path or CONFIG_FILE
     if p.exists():
         try:
-            config = json.loads(p.read_text())
+            raw = json.loads(p.read_text())
         except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+            raw = {}
+        # Guard: config must be a dict — malformed payloads (list, string, etc.)
+        # would cause TypeError downstream when callers use .get() / .items().
+        if not isinstance(raw, dict):
+            logger.warning(
+                "Config file %s contains a non-object top-level value (%s); "
+                "falling back to defaults.",
+                p,
+                type(raw).__name__,
+            )
             config = {}
+        else:
+            config = raw
     else:
         # First run — try migrating from state files
         config = _migrate_from_state_files(p)

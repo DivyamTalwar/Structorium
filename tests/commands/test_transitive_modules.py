@@ -436,7 +436,7 @@ class TestVizCmd:
 
 # ── 5. review/entrypoint.py ─────────────────────────────────────────────────
 
-from app.commands.review.entrypoint import cmd_review  # noqa: E402
+from app.commands.review.entrypoint import ReviewValidationError, cmd_review  # noqa: E402
 
 
 class TestCmdReviewEntrypoint:
@@ -559,9 +559,11 @@ class TestCmdReviewEntrypoint:
             session_id=None,
         )
 
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(
+            ReviewValidationError,
+            match=r"choose one review mode per command",
+        ):
             cmd_review(args)
-        assert exc_info.value.code == 1
 
     @patch("app.commands.review.entrypoint.resolve_lang")
     @patch("app.commands.review.entrypoint.command_runtime")
@@ -582,9 +584,11 @@ class TestCmdReviewEntrypoint:
             session_id=None,
         )
 
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(
+            ReviewValidationError,
+            match=r"choose one review mode per command",
+        ):
             cmd_review(args)
-        assert exc_info.value.code == 1
 
     @patch("app.commands.review.entrypoint.do_external_start")
     @patch("app.commands.review.entrypoint.resolve_lang")
@@ -638,7 +642,7 @@ class TestCmdReviewEntrypoint:
 
     @patch("app.commands.review.entrypoint.resolve_lang")
     @patch("app.commands.review.entrypoint.command_runtime")
-    def test_external_submit_requires_import_and_session(
+    def test_external_submit_requires_import_file(
         self, mock_runtime, mock_resolve_lang
     ):
         rt = MagicMock()
@@ -656,15 +660,42 @@ class TestCmdReviewEntrypoint:
             session_id=None,
         )
 
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(
+            ReviewValidationError,
+            match=r"--external-submit requires --import FILE\.",
+        ):
             cmd_review(args)
-        assert exc_info.value.code == 2
+
+    @patch("app.commands.review.entrypoint.resolve_lang")
+    @patch("app.commands.review.entrypoint.command_runtime")
+    def test_external_submit_requires_session_id(
+        self, mock_runtime, mock_resolve_lang
+    ):
+        rt = MagicMock()
+        rt.state = {"findings": {}}
+        rt.state_path = "/tmp/state.json"
+        rt.config = {}
+        mock_runtime.return_value = rt
+        mock_resolve_lang.return_value = MagicMock(name="python")
+        args = argparse.Namespace(
+            run_batches=False,
+            import_file="/tmp/review.json",
+            validate_import_file=None,
+            external_start=False,
+            external_submit=True,
+            session_id=None,
+        )
+
+        with pytest.raises(
+            ReviewValidationError,
+            match=r"--external-submit requires --session-id\.",
+        ):
+            cmd_review(args)
 
     @patch("app.commands.review.entrypoint.resolve_lang", return_value=None)
     @patch("app.commands.review.entrypoint.command_runtime")
-    @patch("app.commands.review.entrypoint.colorize", side_effect=lambda t, _c: t)
-    def test_exits_when_no_lang(self, _mock_colorize, mock_runtime, mock_resolve_lang):
-        """When resolve_lang returns None, prints error and exits."""
+    def test_raises_when_no_lang(self, mock_runtime, _mock_resolve_lang):
+        """When resolve_lang returns None, raises a validation error."""
         rt = MagicMock()
         rt.state = {"findings": {}}
         rt.state_path = "/tmp/state.json"
@@ -672,9 +703,11 @@ class TestCmdReviewEntrypoint:
         mock_runtime.return_value = rt
         args = argparse.Namespace()
 
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(
+            ReviewValidationError,
+            match=r"could not detect language\. Use --lang\.",
+        ):
             cmd_review(args)
-        assert exc_info.value.code == 1
 
 
 # ── 6. update_skill.py ──────────────────────────────────────────────────────
