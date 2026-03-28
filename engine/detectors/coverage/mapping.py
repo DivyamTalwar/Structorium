@@ -40,23 +40,13 @@ def _infer_lang_name(test_files: set[str], production_files: set[str]) -> str | 
             continue
         counts[lang_name] = counts.get(lang_name, 0) + 1
     if counts:
-        return max(counts.items(), key=lambda item: item[1])[0]
+        # Sort by count descending, then by language name alphabetically to ensure deterministic ties
+        return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
     return None
 
 
-def _import_based_mapping(
-    graph: dict,
-    test_files: set[str],
-    production_files: set[str],
-    lang_name: str | None = None,
-) -> set[str]:
-    """Map test files to production files via import edges."""
-    lang_name = lang_name or _infer_lang_name(test_files, production_files)
-    mod = _load_lang_test_coverage_module(lang_name)
-
-    tested = set()
-
-    # Build module-name->path index for resolving test imports.
+def _build_prod_by_module_index(production_files: set[str]) -> dict[str, str]:
+    """Build a module-name -> file-path mapping for imports."""
     prod_by_module: dict[str, str] = {}
     root_str = str(PROJECT_ROOT) + os.sep
     for pf in production_files:
@@ -66,13 +56,32 @@ def _import_based_mapping(
             module_name = module_name.rsplit(".", 1)[0]
         prod_by_module[module_name] = pf
 
-        # __init__.py: also map package path (e.g. "foo.bar" -> __init__.py).
         if module_name.endswith(".__init__"):
             prod_by_module[module_name[: -len(".__init__")]] = pf
 
         parts = module_name.split(".")
-        if parts:
+        if parts and parts[-1] not in prod_by_module:
             prod_by_module[parts[-1]] = pf
+            
+    return prod_by_module
+
+
+def _import_based_mapping(
+    graph: dict,
+    test_files: set[str],
+    production_files: set[str],
+    lang_name: str | None = None,
+    parsed_imports_by_test: dict[str, set[str]] | None = None,
+) -> set[str]:
+    """Map test files to production files via import edges."""
+    lang_name = lang_name or _infer_lang_name(test_files, production_files)
+    mod = _load_lang_test_coverage_module(lang_name)
+    parsed_cache = parsed_imports_by_test or {}
+
+    tested = set()
+
+    # Build module-name->path index for resolving test imports.
+    prod_by_module = _build_prod_by_module_index(production_files)
 
     for tf in test_files:
         entry = graph.get(tf)
@@ -87,9 +96,12 @@ def _import_based_mapping(
         # or always for TypeScript where dynamic import('...') is common in
         # coverage smoke tests and may be missed by static graph building.
         if not graph_mapped or lang_name == "typescript":
-            tested |= _parse_test_imports(
-                tf, production_files, prod_by_module, lang_name
-            )
+            if tf in parsed_cache:
+                tested |= parsed_cache[tf]
+            else:
+                parsed = _parse_test_imports(tf, production_files, prod_by_module, lang_name)
+                parsed_cache[tf] = parsed
+                tested |= parsed
 
     barrel_basenames = getattr(mod, "BARREL_BASENAMES", set())
     if barrel_basenames:
@@ -370,7 +382,7 @@ def _get_test_files_for_prod(
         module_name = module_name.rsplit(".", 1)[0]
     prod_by_module: dict[str, str] = {module_name: prod_file}
     parts = module_name.split(".")
-    if parts:
+    if parts and parts[-1] not in prod_by_module:
         prod_by_module[parts[-1]] = prod_file
 
     result = []
@@ -396,19 +408,7 @@ def _build_test_import_index(
     lang_name: str,
 ) -> dict[str, set[str]]:
     """Parse test import sources once, producing a test->production import index."""
-    root_str = str(PROJECT_ROOT) + os.sep
-    prod_by_module: dict[str, str] = {}
-    for pf in production_files:
-        rel_pf = pf[len(root_str):] if pf.startswith(root_str) else pf
-        module_name = rel_pf.replace("/", ".").replace("\\", ".")
-        if "." in module_name:
-            module_name = module_name.rsplit(".", 1)[0]
-        prod_by_module[module_name] = pf
-        if module_name.endswith(".__init__"):
-            prod_by_module[module_name[: -len(".__init__")]] = pf
-        parts = module_name.split(".")
-        if parts:
-            prod_by_module[parts[-1]] = pf
+    prod_by_module = _build_prod_by_module_index(production_files)
 
     index: dict[str, set[str]] = {}
     for tf in test_files:

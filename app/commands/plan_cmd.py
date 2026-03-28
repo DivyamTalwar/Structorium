@@ -11,11 +11,11 @@ import argparse
 from app.commands.helpers.rendering import print_agent_plan
 from app.commands.helpers.runtime import command_runtime
 from app.commands.helpers.state import require_completed_scan
-from core.fallbacks import warn_best_effort
-from engine import planning as planning_mod
 from core.discovery_api import safe_write_text
+from core.fallbacks import warn_best_effort
 from core.output_api import colorize
 from core.tooling import check_config_staleness
+from engine import planning as planning_mod
 
 
 def cmd_plan_output(args: argparse.Namespace) -> None:

@@ -39,7 +39,7 @@ def get_lang_hook(lang_name: str | None, hook_name: str) -> object | None:
         try:
             importlib.import_module(module_name)
         except (ImportError, ValueError, TypeError, RuntimeError, OSError) as exc:
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "Unable to import language hook package %s: %s", lang_name, exc
             )
             return None
@@ -47,7 +47,7 @@ def get_lang_hook(lang_name: str | None, hook_name: str) -> object | None:
         try:
             importlib.reload(module)
         except (ImportError, ValueError, TypeError, RuntimeError, OSError) as exc:
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "Unable to reload language hook package %s: %s", lang_name, exc
             )
             return None

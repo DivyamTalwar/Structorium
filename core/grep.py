@@ -15,7 +15,10 @@ def grep_files(
     pattern: str, file_list: list[str], *, flags: int = 0
 ) -> list[tuple[str, int, str]]:
     """Search files for a regex pattern. Returns (filepath, lineno, line_text)."""
-    compiled = re.compile(pattern, flags)
+    try:
+        compiled = re.compile(pattern, flags)
+    except re.error:
+        return []
     results: list[tuple[str, int, str]] = []
     for filepath in file_list:
         abs_path = filepath if os.path.isabs(filepath) else str(_get_project_root() / filepath)
@@ -35,22 +38,29 @@ def grep_files_containing(
     if not names:
         return {}
     names_by_length = sorted(names, key=len, reverse=True)
-    if word_boundary:
-        combined = re.compile(
-            r"\b(?:" + "|".join(re.escape(n) for n in names_by_length) + r")\b"
-        )
-    else:
-        combined = re.compile("|".join(re.escape(n) for n in names_by_length))
-
+    
     name_to_files: dict[str, set[str]] = {}
-    for filepath in file_list:
-        abs_path = filepath if os.path.isabs(filepath) else str(_get_project_root() / filepath)
-        content = _read_file_text(abs_path)
-        if content is None:
+    chunk_size = 500
+    for i in range(0, len(names_by_length), chunk_size):
+        chunk = names_by_length[i:i + chunk_size]
+        try:
+            if word_boundary:
+                combined = re.compile(
+                    r"\b(?:" + "|".join(re.escape(n) for n in chunk) + r")\b"
+                )
+            else:
+                combined = re.compile("|".join(re.escape(n) for n in chunk))
+        except re.error:
             continue
-        found = set(combined.findall(content))
-        for name in found & names:
-            name_to_files.setdefault(name, set()).add(filepath)
+
+        for filepath in file_list:
+            abs_path = filepath if os.path.isabs(filepath) else str(_get_project_root() / filepath)
+            content = _read_file_text(abs_path)
+            if content is None:
+                continue
+            found = set(combined.findall(content))
+            for name in found & set(chunk):
+                name_to_files.setdefault(name, set()).add(filepath)
     return name_to_files
 
 
