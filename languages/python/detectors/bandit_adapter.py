@@ -28,7 +28,7 @@ from typing import Literal
 
 from core._internal.text_utils import PROJECT_ROOT
 from engine.policy.zones import FileZoneMap, Zone
-from core.discovery_api import rel
+from core.discovery_api import get_exclusions, matches_exclusion, rel
 from languages._framework.base.types import DetectorCoverageStatus
 
 logger = logging.getLogger(__name__)
@@ -139,6 +139,12 @@ def _to_security_entry(
     if not filepath:
         return None
 
+    rel_path = rel(filepath)
+
+    exclusions = get_exclusions()
+    if exclusions and any(matches_exclusion(rel_path, exclusion) for exclusion in exclusions):
+        return None
+
     # Apply zone filtering — only GENERATED and VENDOR are excluded for security.
     if zone_map is not None:
         zone = zone_map.get(filepath)
@@ -162,8 +168,6 @@ def _to_security_entry(
     line = result.get("line_number", 0)
     summary = result.get("issue_text", "")
     test_name = result.get("test_name", test_id)
-    rel_path = rel(filepath)
-
     return {
         "file": filepath,
         "name": f"security::{test_id}::{rel_path}::{line}",

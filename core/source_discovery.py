@@ -86,15 +86,36 @@ def collect_exclude_dirs(scan_root: Path) -> list[str]:
     """All exclusion directories as absolute paths, for passing to external tools.
 
     Combines DEFAULT_EXCLUSIONS (non-glob entries) + get_exclusions() (runtime/config),
-    resolves each against *scan_root*. Filters out glob patterns (``*`` in name)
-    since most CLI tools want plain directory paths.
+    and resolves them to absolute paths. Default exclusions and bare runtime names
+    are anchored to *scan_root*. Runtime exclusions that include path separators are
+    treated as project-root-relative so patterns like ``src/generated.py`` still
+    resolve correctly when a detector narrows its scan root to ``src/``.
+    Filters out glob patterns (``*`` in name) since most CLI tools want plain paths.
     """
-    patterns = set()
+    scan_root = Path(scan_root).resolve()
+    project_root = get_project_root()
+    resolved: set[str] = set()
+
     for pat in DEFAULT_EXCLUSIONS:
         if "*" not in pat:
-            patterns.add(pat)
-    patterns.update(p for p in get_exclusions() if p and "*" not in p)
-    return [str(scan_root / p) for p in sorted(patterns) if p]
+            resolved.add(str((scan_root / pat).resolve()))
+
+    for pat in get_exclusions():
+        if not pat or "*" in pat:
+            continue
+
+        pattern_path = Path(pat)
+        if pattern_path.is_absolute():
+            resolved.add(str(pattern_path.resolve()))
+            continue
+
+        if "/" in pat or os.sep in pat:
+            resolved.add(str((project_root / pattern_path).resolve()))
+            continue
+
+        resolved.add(str((scan_root / pattern_path).resolve()))
+
+    return sorted(resolved)
 
 
 def _is_excluded_dir(name: str, rel_path: str, extra: tuple[str, ...]) -> bool:

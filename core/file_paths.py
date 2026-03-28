@@ -11,7 +11,8 @@ from core._internal.text_utils import get_project_root
 
 def matches_exclusion(rel_path: str, exclusion: str) -> bool:
     """Check if a relative path matches an exclusion pattern."""
-    parts = Path(rel_path).parts
+    normalized_path = rel_path.lstrip("./")
+    parts = Path(normalized_path).parts
     if exclusion in parts:
         return True
     if "*" in exclusion:
@@ -22,12 +23,13 @@ def matches_exclusion(rel_path: str, exclusion: str) -> bool:
         # Full-path glob match for patterns with directory separators
         # (e.g. "Wan2GP/**" should match "Wan2GP/models/rf.py").
         if "/" in exclusion or os.sep in exclusion:
-            normalized_path = rel_path.lstrip("./")
             if fnmatch.fnmatch(normalized_path, exclusion):
                 return True
     if "/" in exclusion or os.sep in exclusion:
         normalized = exclusion.rstrip("/").rstrip(os.sep)
-        return rel_path.startswith(normalized + "/") or rel_path.startswith(
+        return normalized_path == normalized or normalized_path.startswith(
+            normalized + "/"
+        ) or normalized_path.startswith(
             normalized + os.sep
         )
     return False
