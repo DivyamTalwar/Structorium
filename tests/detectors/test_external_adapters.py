@@ -377,6 +377,30 @@ class TestBanditAdapter:
         result = self._run_detect(stdout=self._bandit_result(raw))
         assert result.entries == []
 
+    def test_skips_runtime_excluded_files(self):
+        raw = [
+            {
+                "filename": "/project/src/ignored.py",
+                "issue_severity": "HIGH",
+                "issue_confidence": "HIGH",
+                "issue_text": "Use of exec detected.",
+                "line_number": 7,
+                "test_id": "B102",
+                "test_name": "exec_used",
+                "code": "exec(user_input)",
+                "more_info": "",
+            }
+        ]
+        with patch(
+            "languages.python.detectors.bandit_adapter.get_exclusions",
+            return_value=("src/ignored.py",),
+        ), patch(
+            "languages.python.detectors.bandit_adapter.rel",
+            return_value="src/ignored.py",
+        ):
+            result = self._run_detect(stdout=self._bandit_result(raw))
+        assert result.entries == []
+
     def test_finding_name_is_stable_and_unique(self):
         raw = [
             {
@@ -905,6 +929,22 @@ class TestCollectExcludeDirs:
             result = collect_exclude_dirs(tmp_path)
         node_entries = [p for p in result if p.endswith("/node_modules")]
         assert len(node_entries) == 1
+
+    def test_nested_runtime_exclusions_resolve_from_project_root(self, tmp_path):
+        scan_root = tmp_path / "src"
+        scan_root.mkdir()
+
+        with patch(
+            "core.source_discovery.get_exclusions",
+            return_value=("src/ignored.py",),
+        ), patch(
+            "core.source_discovery.get_project_root",
+            return_value=tmp_path,
+        ):
+            result = collect_exclude_dirs(scan_root)
+
+        assert str(tmp_path / "src" / "ignored.py") in result
+        assert str(scan_root / "src" / "ignored.py") not in result
 
 
 # ── Ruff --exclude integration ───────────────────────────────────────────────

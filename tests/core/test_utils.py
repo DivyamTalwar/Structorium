@@ -106,6 +106,11 @@ def test_matches_exclusion_directory_prefix():
     assert matches_exclusion("src/test/bar.py", "src/test") is True
 
 
+def test_matches_exclusion_exact_nested_file_path():
+    """'src/test/bar.py' matches the same full relative path exactly."""
+    assert matches_exclusion("src/test/bar.py", "src/test/bar.py") is True
+
+
 def test_matches_exclusion_no_match():
     """'lib' does not match 'src/test/bar.py'."""
     assert matches_exclusion("src/test/bar.py", "lib") is False
