@@ -48,27 +48,18 @@ def apply_file_move(
 
     Path(dest_abs).parent.mkdir(parents=True, exist_ok=True)
     written_files: dict[str, str] = {}
-    
-    # 1. Snapshot all original file contents explicitly BEFORE the filesystem mutates
-    # We do NOT snapshot source_abs into written_files because the rollback
-    # strategy is handled separately by `_rollback_move_target`. We only snapshot
-    # files whose contents we are going to modify in place.
+
     try:
         for filepath in importer_changes:
             if filepath in new_contents and Path(filepath).exists():
                 written_files[filepath] = Path(filepath).read_text()
-        
-        # 2. Execute the filesystem move
+
         shutil.move(source_abs, dest_abs)
 
-        # 3. Apply memory modifications to the new destination
         if dest_abs in new_contents:
-            # We don't snapshot dest_abs before this write because if a rollback happens, 
-            # `dest_abs` ceases to exist (it gets moved back to source_abs by `_rollback_move_target`).
-            # In fact, writing to dest_abs during rollback would recreate an orphaned file.
+            written_files[dest_abs] = Path(dest_abs).read_text()
             safe_write_text(dest_abs, new_contents[dest_abs])
 
-        # 4. Apply rest of imports
         for filepath in importer_changes:
             if filepath in new_contents:
                 safe_write_text(filepath, new_contents[filepath])
@@ -93,7 +84,6 @@ def apply_directory_move(
     written_files: dict[str, str] = {}
 
     try:
-        # Snapshot content files prior to mutating
         for filepath, replacements in external_changes.items():
             if Path(filepath).exists():
                 written_files[filepath] = Path(filepath).read_text()
@@ -109,6 +99,7 @@ def apply_directory_move(
             content = original
             for old_str, new_str in changes:
                 content = content.replace(old_str, new_str)
+            written_files[str(dest_file)] = original
             safe_write_text(dest_file, content)
 
         for filepath, replacements in external_changes.items():
