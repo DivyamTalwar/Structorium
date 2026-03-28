@@ -768,6 +768,36 @@ class TestApplyFileMove:
                 [],
             )
 
+    def test_file_move_rollback_restores_self_changes(self, tmp_path, monkeypatch):
+        """Rollback restores the original source contents after self changes."""
+        src = tmp_path / "a.py"
+        dest = tmp_path / "b.py"
+        importer = tmp_path / "user.py"
+        src.write_text("from old import thing\n")
+        importer.write_text("from a import thing\n")
+
+        original_safe_write_text = move_apply_mod.safe_write_text
+
+        def flaky_safe_write_text(filepath: str | Path, content: str) -> None:
+            if str(filepath) == str(importer):
+                raise OSError("boom")
+            original_safe_write_text(filepath, content)
+
+        monkeypatch.setattr(move_apply_mod, "safe_write_text", flaky_safe_write_text)
+
+        with pytest.raises(OSError, match="boom"):
+            move_apply_mod.apply_file_move(
+                str(src),
+                str(dest),
+                {str(importer): [("from a import thing", "from b import thing")]},
+                [("from old import thing", "from new import thing")],
+            )
+
+        assert src.exists()
+        assert not dest.exists()
+        assert src.read_text() == "from old import thing\n"
+        assert importer.read_text() == "from a import thing\n"
+
 
 class TestApplyDirectoryMove:
     def test_directory_move_basic(self, tmp_path):
@@ -799,6 +829,40 @@ class TestApplyDirectoryMove:
             {str(src / "a.py"): [("from pkg.b import f", "from new_pkg.b import f")]},
         )
         assert (dest / "a.py").read_text() == "from new_pkg.b import f"
+
+    def test_directory_move_rollback_restores_internal_changes(
+        self, tmp_path, monkeypatch
+    ):
+        """Rollback restores original moved-directory contents after internal rewrites."""
+        src = tmp_path / "pkg"
+        src.mkdir()
+        (src / "a.py").write_text("from pkg.b import f\n")
+        consumer = tmp_path / "consumer.py"
+        consumer.write_text("from pkg.a import f\n")
+
+        dest = tmp_path / "new_pkg"
+        original_safe_write_text = move_apply_mod.safe_write_text
+
+        def flaky_safe_write_text(filepath: str | Path, content: str) -> None:
+            if str(filepath) == str(consumer):
+                raise OSError("boom")
+            original_safe_write_text(filepath, content)
+
+        monkeypatch.setattr(move_apply_mod, "safe_write_text", flaky_safe_write_text)
+
+        with pytest.raises(OSError, match="boom"):
+            move_apply_mod.apply_directory_move(
+                str(src),
+                str(dest),
+                src,
+                {str(consumer): [("from pkg.a import f", "from new_pkg.a import f")]},
+                {str(src / "a.py"): [("from pkg.b import f", "from new_pkg.b import f")]},
+            )
+
+        assert src.exists()
+        assert not dest.exists()
+        assert (src / "a.py").read_text() == "from pkg.b import f\n"
+        assert consumer.read_text() == "from pkg.a import f\n"
 
 
 # =====================================================================
