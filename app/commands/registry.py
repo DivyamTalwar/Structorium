@@ -12,6 +12,7 @@ _COMMAND_HANDLERS: dict[str, CommandHandler] | None = None
 
 def _build_handlers() -> dict[str, CommandHandler]:
     """Import all command modules and build the handler dict on first access."""
+    from app.commands.baseline_cmd import cmd_baseline
     from app.commands.config_cmd import cmd_config
     from app.commands.detect import cmd_detect
     from app.commands.dev_cmd import cmd_dev
@@ -31,6 +32,7 @@ def _build_handlers() -> dict[str, CommandHandler]:
     from app.commands.zone_cmd import cmd_zone
 
     return {
+        "baseline": cmd_baseline,
         "scan": cmd_scan,
         "status": cmd_status,
         "show": cmd_show,

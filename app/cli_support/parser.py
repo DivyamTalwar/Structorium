@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
-from importlib.metadata import PackageNotFoundError, version as get_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as get_version
 
 from app.cli_support.parser_groups import (
+    _add_baseline_parser,
     _add_config_parser,
     _add_detect_parser,
     _add_dev_parser,
@@ -117,6 +119,7 @@ def create_parser(*, langs: list[str], detector_names: list[str]) -> argparse.Ar
         parser_class=_NoAbbrevArgumentParser,
     )
     _add_scan_parser(sub)
+    _add_baseline_parser(sub)
     _add_status_parser(sub)
     _add_tree_parser(sub)
     _add_show_parser(sub)

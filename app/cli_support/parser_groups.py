@@ -19,6 +19,7 @@ from app.cli_support.parser_groups_admin import (  # noqa: F401 (re-exports)
 )
 
 __all__ = [
+    "_add_baseline_parser",
     "_add_config_parser",
     "_add_detect_parser",
     "_add_dev_parser",
@@ -38,6 +39,22 @@ __all__ = [
     "_add_viz_parser",
     "_add_zone_parser",
 ]
+
+
+def _add_baseline_parser(sub) -> None:
+    p_baseline = sub.add_parser(
+        "baseline", help="Capture existing findings and fail only on regressions"
+    )
+    actions = p_baseline.add_subparsers(dest="baseline_action", required=True)
+    capture = actions.add_parser("capture", help="Capture active findings as a baseline")
+    capture.add_argument("--state", type=str, default=None, help="Path to state file")
+    capture.add_argument("--output", default=".structorium/baseline.json", help="Baseline output path")
+    capture.add_argument("--force", action="store_true", help="Explicitly replace an existing baseline")
+    check = actions.add_parser("check", help="Compare active findings with a baseline")
+    check.add_argument("--state", type=str, default=None, help="Path to state file")
+    check.add_argument("--baseline", default=".structorium/baseline.json", help="Baseline input path")
+    check.add_argument("--max-new", type=int, default=0, help="Allowed new findings before failure")
+    check.add_argument("--json", action="store_true", help="Emit machine-readable comparison JSON")
 
 
 def _add_scan_parser(sub) -> None:

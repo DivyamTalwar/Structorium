@@ -924,6 +924,12 @@ structorium config set NEO4J_PASSWORD <password>
 
 ## 🚧 New-Code Gate
 
+For legacy repositories that need a finding-level ratchet in addition to changed-line
+gating, capture the current active debt with `structorium baseline capture`, commit
+the artifact, and run `structorium baseline check` in CI. The checksum-protected
+baseline fails only on newly introduced findings and reports debt removed since the
+capture. See the [baseline ratchet guide](docs/BASELINES.md).
+
 <p align="center">
   <img src="assets/readme/new_code_gate.png" alt="New-Code Gate" width="100%"/>
 </p>
@@ -2172,4 +2178,3 @@ copies or substantial portions of the Software.
 <p align="center">
   <a href="#structorium">↑ Back to top</a>
 </p>
-
