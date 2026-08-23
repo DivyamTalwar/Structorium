@@ -12,6 +12,9 @@ license = "MIT"
 authors = [
     {name = "Peter O'Malley", email = "pom@banodoco.ai"},
 ]
+maintainers = [
+    {name = "Divyam Talwar"},
+]
 keywords = ["code-quality", "technical-debt", "linter", "static-analysis", "refactoring"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -29,9 +32,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/peteromallet/structorium"
-Repository = "https://github.com/peteromallet/structorium"
-Issues = "https://github.com/peteromallet/structorium/issues"
+Homepage = "https://github.com/DivyamTalwar/Structorium"
+Repository = "https://github.com/DivyamTalwar/Structorium"
+Issues = "https://github.com/DivyamTalwar/Structorium/issues"
 
 [project.optional-dependencies]
 treesitter = ["tree-sitter-language-pack>=0.3"]
