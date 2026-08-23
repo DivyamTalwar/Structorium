@@ -5,6 +5,12 @@
 <h1 align="center">Structorium</h1>
 <h3 align="center">Architecture. Automatically Enforced.</h3>
 
+<p align="center"><small>
+The original MIT license and Peter O'Malley's authorship are preserved. This
+repository is maintained by Divyam Talwar. See <a href="NOTICE">NOTICE</a>
+for the precise attribution statement.
+</small></p>
+
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.11+-050505?style=flat-square" alt="Python"/>
   <img src="https://img.shields.io/badge/languages-28-FF4500?style=flat-square" alt="Languages"/>
@@ -2172,4 +2178,3 @@ copies or substantial portions of the Software.
 <p align="center">
   <a href="#structorium">↑ Back to top</a>
 </p>
-
