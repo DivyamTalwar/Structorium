@@ -148,6 +148,12 @@ def _generate_findings_from_lang(
         all_potentials = dict(cache_lookup.potentials or {})
     else:
         findings, all_potentials = _run_phases(path, lang, phases)
+        from engine.policy.architecture import detect_architecture_policy
+
+        policy_findings, policy_edges = detect_architecture_policy(path, lang)
+        findings.extend(policy_findings)
+        if policy_edges:
+            all_potentials["architecture_policy"] = policy_edges
     _stamp_finding_context(findings, lang)
     if cache_lookup is not None and not cache_lookup.hit:
         from engine.planning.incremental_cache import store_scan_cache
