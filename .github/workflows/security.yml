@@ -46,12 +46,12 @@ jobs:
           GITLEAKS_ARGS: --no-git
 
   dependency-review:
+    # The action requires GitHub's Dependency Graph repository setting. Keep the
+    # job opt-in so repositories without that setting do not report a false-red
+    # security workflow; pip-audit remains mandatory below.
     if: >
       github.event_name == 'pull_request' &&
-      (
-        github.event.repository.private == false ||
-        vars.ENABLE_PRIVATE_DEPENDENCY_REVIEW == 'true'
-      )
+      vars.ENABLE_DEPENDENCY_REVIEW == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
