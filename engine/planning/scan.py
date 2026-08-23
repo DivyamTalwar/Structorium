@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from core._internal.text_utils import PROJECT_ROOT
+from core.file_paths import rel
+from core.output_api import colorize
 from engine.planning.common import is_subjective_phase
 from engine.policy.zones import ZONE_POLICIES, FileZoneMap
-from core.file_paths import rel
 from languages import auto_detect_lang, available_langs, get_lang
 from languages._framework.base.types import DetectorPhase, LangConfig
 from languages._framework.runtime import LangRun, make_lang_run
 from state import Finding
-from core.output_api import colorize
 
 
 @dataclass
@@ -125,8 +126,33 @@ def _generate_findings_from_lang(
     """Run detector phases from a LangRun."""
     _build_zone_map(path, lang, zone_overrides)
     phases = _select_phases(lang, include_slow=include_slow, profile=profile)
-    findings, all_potentials = _run_phases(path, lang, phases)
+    cache_lookup = None
+    cache_allowed = (
+        profile in {"objective", "ci"}
+        and os.environ.get("STRUCTORIUM_DISABLE_INCREMENTAL_CACHE") != "1"
+    )
+    if cache_allowed:
+        from engine.planning.incremental_cache import prepare_scan_cache
+
+        cache_lookup = prepare_scan_cache(
+            path,
+            lang,
+            phases,
+            profile=profile,
+            include_slow=include_slow,
+            zone_overrides=zone_overrides,
+        )
+    if cache_lookup is not None and cache_lookup.hit:
+        _stderr("  Incremental cache: objective findings reused")
+        findings = list(cache_lookup.findings or [])
+        all_potentials = dict(cache_lookup.potentials or {})
+    else:
+        findings, all_potentials = _run_phases(path, lang, phases)
     _stamp_finding_context(findings, lang)
+    if cache_lookup is not None and not cache_lookup.hit:
+        from engine.planning.incremental_cache import store_scan_cache
+
+        store_scan_cache(cache_lookup, findings, all_potentials)
     _stderr(f"\n  Total: {len(findings)} findings")
     return findings, all_potentials
 
