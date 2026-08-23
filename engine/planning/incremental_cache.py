@@ -53,6 +53,9 @@ def _source_files(scan_path: Path, lang: LangRun) -> list[Path]:
         path = path.resolve()
         if path.is_file() and (path.is_relative_to(scan_root) or scan_root == root):
             resolved.add(path)
+    policy = root / "structorium.toml"
+    if policy.is_file():
+        resolved.add(policy)
     return sorted(resolved)
 
 
