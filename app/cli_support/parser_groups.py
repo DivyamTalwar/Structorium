@@ -30,6 +30,7 @@ __all__ = [
     "_add_next_parser",
     "_add_plan_parser",
     "_add_review_parser",
+    "_add_sarif_parser",
     "_add_scan_parser",
     "_add_show_parser",
     "_add_status_parser",
@@ -38,6 +39,18 @@ __all__ = [
     "_add_viz_parser",
     "_add_zone_parser",
 ]
+
+
+def _add_sarif_parser(sub) -> None:
+    p_sarif = sub.add_parser(
+        "sarif", help="Export persisted findings as GitHub-compatible SARIF 2.1.0"
+    )
+    p_sarif.add_argument("--path", type=str, default=".", help="Repository root for relative artifact URIs")
+    p_sarif.add_argument("--state", type=str, default=None, help="Path to state file")
+    p_sarif.add_argument("--output", default="structorium.sarif", help="SARIF output path")
+    p_sarif.add_argument("--include-resolved", action="store_true", help="Include resolved findings")
+    p_sarif.add_argument("--include-suppressed", action="store_true", help="Include suppressed findings with SARIF suppression metadata")
+    p_sarif.add_argument("--max-results", type=int, default=5_000, help="Maximum exported results (default: 5000)")
 
 
 def _add_scan_parser(sub) -> None:

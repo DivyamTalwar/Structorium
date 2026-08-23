@@ -23,6 +23,7 @@ def _build_handlers() -> dict[str, CommandHandler]:
     from app.commands.plan import cmd_plan
     from app.commands.resolve import cmd_ignore_pattern
     from app.commands.review import cmd_review
+    from app.commands.sarif_cmd import cmd_sarif
     from app.commands.scan import cmd_scan
     from app.commands.show import cmd_show
     from app.commands.status_cmd import cmd_status
@@ -45,6 +46,7 @@ def _build_handlers() -> dict[str, CommandHandler]:
         "move": cmd_move,
         "zone": cmd_zone,
         "review": cmd_review,
+        "sarif": cmd_sarif,
         "config": cmd_config,
         "dev": cmd_dev,
         "langs": cmd_langs,
