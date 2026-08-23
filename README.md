@@ -1904,6 +1904,11 @@ def evaluate_gate(findings, changed_ranges, policy):
 
 ## 🔗 Temporal Coupling
 
+For a source-level blast-radius explanation, run `structorium impact <file-or-dir>`.
+The bounded explorer reports shortest-path witnesses for dependents and dependencies,
+and can emit JSON for agents or Mermaid for review discussions. See the
+[dependency impact explorer guide](docs/IMPACT_EXPLORER.md).
+
 Temporal coupling is computed from git history:
 
 ```
@@ -2172,4 +2177,3 @@ copies or substantial portions of the Software.
 <p align="center">
   <a href="#structorium">↑ Back to top</a>
 </p>
-

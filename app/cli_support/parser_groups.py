@@ -25,6 +25,7 @@ __all__ = [
     "_add_exclude_parser",
     "_add_fix_parser",
     "_add_ignore_parser",
+    "_add_impact_parser",
     "_add_langs_parser",
     "_add_move_parser",
     "_add_next_parser",
@@ -38,6 +39,31 @@ __all__ = [
     "_add_viz_parser",
     "_add_zone_parser",
 ]
+
+
+def _add_impact_parser(sub) -> None:
+    p_impact = sub.add_parser(
+        "impact", help="Explain bounded dependency blast radius for files or directories"
+    )
+    p_impact.add_argument("targets", nargs="+", help="File or directory paths to explore")
+    p_impact.add_argument("--path", type=str, default=".", help="Project root directory")
+    p_impact.add_argument("--state", type=str, default=None, help="Path to state file")
+    p_impact.add_argument(
+        "--direction",
+        choices=["dependents", "dependencies", "both"],
+        default="both",
+        help="Graph direction to explore (default: both)",
+    )
+    p_impact.add_argument("--depth", type=int, default=3, help="Maximum traversal depth")
+    p_impact.add_argument(
+        "--max-nodes", type=int, default=200, help="Hard impacted-node budget"
+    )
+    p_impact.add_argument(
+        "--format", choices=["text", "json", "mermaid"], default="text"
+    )
+    p_impact.add_argument(
+        "--output", type=str, default=None, help="Write evidence to this path"
+    )
 
 
 def _add_scan_parser(sub) -> None:
