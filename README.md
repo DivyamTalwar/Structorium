@@ -1018,6 +1018,11 @@ structorium zone clear src/scripts       # remove zone override
 
 ## ⚙️ CI Integration Playbook
 
+Structorium can publish its architecture findings directly into GitHub Code
+Scanning. After a scan, run `structorium sarif --output structorium.sarif`; the
+export is bounded, GitHub-compatible, and uses stable fingerprints so line-only
+moves do not create duplicate alerts. See the [SARIF evidence guide](docs/SARIF.md).
+
 ### GitHub Actions
 
 ```yaml
@@ -2172,4 +2177,3 @@ copies or substantial portions of the Software.
 <p align="center">
   <a href="#structorium">↑ Back to top</a>
 </p>
-
