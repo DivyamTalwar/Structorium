@@ -17,6 +17,7 @@ def _build_handlers() -> dict[str, CommandHandler]:
     from app.commands.dev_cmd import cmd_dev
     from app.commands.exclude_cmd import cmd_exclude
     from app.commands.fix import cmd_fix
+    from app.commands.impact_cmd import cmd_impact
     from app.commands.langs import cmd_langs
     from app.commands.move import cmd_move
     from app.commands.next import cmd_next
@@ -38,6 +39,7 @@ def _build_handlers() -> dict[str, CommandHandler]:
         "ignore": cmd_ignore_pattern,
         "exclude": cmd_exclude,
         "fix": cmd_fix,
+        "impact": cmd_impact,
         "plan": cmd_plan,
         "detect": cmd_detect,
         "tree": cmd_tree,
