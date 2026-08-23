@@ -775,17 +775,20 @@ class TestCmdReviewPrepare:
         assert len(packet_files) == 1
         blind_packet = tmp_path / ".structorium" / "review_packet_blind.json"
         assert blind_packet.exists()
-        prompt_files = list(runs_dir.glob("*/prompts/batch-*.md"))
+        prompt_files = sorted(runs_dir.glob("*/prompts/batch-*.md"))
         assert len(prompt_files) == 2
-        prompt_text = prompt_files[0].read_text()
-        assert "Blind packet:" in prompt_text
-        assert str(blind_packet) in prompt_text
-        assert "Previously flagged issues" in prompt_text
-        assert "Legacy surface remains primary" in prompt_text
-        assert "Mechanical concern signals" in prompt_text
-        assert "foo.ts mixes orchestration and transformation" in prompt_text
-        assert "Should orchestration move to a dedicated coordinator?" in prompt_text
-        assert "Workflow integrity checks" in prompt_text
+        prompt_texts = [prompt_file.read_text() for prompt_file in prompt_files]
+        assert all("Blind packet:" in prompt_text for prompt_text in prompt_texts)
+        assert all(str(blind_packet) in prompt_text for prompt_text in prompt_texts)
+        assert any(
+            "Previously flagged issues" in prompt_text for prompt_text in prompt_texts
+        )
+        joined_prompts = "\n".join(prompt_texts)
+        assert "Legacy surface remains primary" in joined_prompts
+        assert "Mechanical concern signals" in joined_prompts
+        assert "foo.ts mixes orchestration and transformation" in joined_prompts
+        assert "Should orchestration move to a dedicated coordinator?" in joined_prompts
+        assert "Workflow integrity checks" in joined_prompts
         run_logs = sorted(runs_dir.glob("*/run.log"))
         assert len(run_logs) == 1
         run_log_text = run_logs[0].read_text()
